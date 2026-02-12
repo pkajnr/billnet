@@ -169,7 +169,7 @@ export default function RegisteredUsers() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                    ${parseFloat(user.wallet_balance || 0).toFixed(2)}
+                    ${Number(user.wallet_balance || 0).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
@@ -228,7 +228,7 @@ export default function RegisteredUsers() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Wallet Balance</p>
-                    <p className="font-medium text-gray-800">${parseFloat(selectedUser.wallet_balance || 0).toFixed(2)}</p>
+                    <p className="font-medium text-gray-800">${Number(selectedUser.wallet_balance || 0).toFixed(2)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Certification Status</p>
