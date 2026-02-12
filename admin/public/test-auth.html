@@ -1,0 +1,38 @@
+// Quick diagnostic for admin authentication
+console.log('\n=== Admin Auth Diagnostic ===\n');
+
+// Check localStorage
+const adminToken = localStorage.getItem('adminToken');
+const adminUser = localStorage.getItem('adminUser');
+
+console.log('1. Token stored:', adminToken ? '✅ Yes' : '❌ No');
+console.log('   Token preview:', adminToken ? adminToken.substring(0, 20) + '...' : 'N/A');
+console.log();
+
+console.log('2. User stored:', adminUser ? '✅ Yes' : '❌ No');
+if (adminUser) {
+  try {
+    const user = JSON.parse(adminUser);
+    console.log('   Username:', user.username);
+    console.log('   Role:', user.role);
+  } catch (e) {
+    console.log('   ❌ Invalid JSON');
+  }
+}
+console.log();
+
+// Test API call
+console.log('3. Testing API call...');
+fetch('http://localhost:5000/api/admin/verify', {
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${adminToken}`
+  }
+})
+  .then(res => res.json())
+  .then(data => {
+    console.log('   ✅ API Response:', data);
+  })
+  .catch(err => {
+    console.log('   ❌ API Error:', err.message);
+  });

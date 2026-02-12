@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ADMIN_API, getAdminHeaders } from '../utils/api';
 import { showToast } from '../utils/toast';
 
 interface User {
@@ -24,8 +25,8 @@ const Users: React.FC = () => {
   }, []);
 
   const fetchUsers = async () => {
-    const adminSecret = localStorage.getItem('adminSecret');
-    if (!adminSecret) {
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
       showToast.error('Admin authentication required');
       return;
     }
@@ -53,7 +54,6 @@ const Users: React.FC = () => {
       return;
     }
 
-    const adminSecret = localStorage.getItem('adminSecret');
     try {
       const response = await fetch(`${ADMIN_API.USERS}/${userId}`, {
         method: 'DELETE',

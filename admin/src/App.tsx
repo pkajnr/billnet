@@ -1,18 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
+import AdminLogin from './pages/AdminLogin';
+import NewDashboard from './pages/NewDashboard';
 import Users from './pages/Users';
+import RegisteredUsers from './pages/RegisteredUsers';
 import Verifications from './pages/Verifications';
 import Ideas from './pages/Ideas';
+import Reports from './pages/Reports';
+import SiteSettings from './pages/SiteSettings';
+import Settings from './pages/Settings';
+import Profile from './pages/Profile';
+import AdminUserManagement from './pages/AdminUserManagement';
+import Analytics from './pages/Analytics';
+import AdminLayout from './components/AdminLayout';
 
 // AdminRoute component to protect authenticated routes
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const adminSecret = localStorage.getItem('adminSecret');
-    setIsAuthenticated(!!adminSecret);
+    const adminToken = localStorage.getItem('adminToken');
+    setIsAuthenticated(!!adminToken);
   }, []);
 
   if (isAuthenticated === null) {
@@ -28,9 +36,9 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // LoginRoute component to redirect if already authenticated
 const LoginRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const adminSecret = localStorage.getItem('adminSecret');
+  const adminToken = localStorage.getItem('adminToken');
   
-  if (adminSecret) {
+  if (adminToken) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -45,7 +53,7 @@ function App() {
           path="/"
           element={
             <LoginRoute>
-              <Login />
+              <AdminLogin />
             </LoginRoute>
           }
         />
@@ -53,7 +61,9 @@ function App() {
           path="/dashboard"
           element={
             <AdminRoute>
-              <Dashboard />
+              <AdminLayout>
+                <NewDashboard />
+              </AdminLayout>
             </AdminRoute>
           }
         />
@@ -61,7 +71,19 @@ function App() {
           path="/users"
           element={
             <AdminRoute>
-              <Users />
+              <AdminLayout>
+                <Users />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/registered-users"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <RegisteredUsers />
+              </AdminLayout>
             </AdminRoute>
           }
         />
@@ -69,7 +91,9 @@ function App() {
           path="/verifications"
           element={
             <AdminRoute>
-              <Verifications />
+              <AdminLayout>
+                <Verifications />
+              </AdminLayout>
             </AdminRoute>
           }
         />
@@ -77,7 +101,69 @@ function App() {
           path="/ideas"
           element={
             <AdminRoute>
-              <Ideas />
+              <AdminLayout>
+                <Ideas />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/reports"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <Reports />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/site-settings"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <SiteSettings />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <Settings />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <Profile />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin-users"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <AdminUserManagement />
+              </AdminLayout>
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/analytics"
+          element={
+            <AdminRoute>
+              <AdminLayout>
+                <Analytics />
+              </AdminLayout>
             </AdminRoute>
           }
         />
@@ -85,7 +171,9 @@ function App() {
           path="/transactions"
           element={
             <AdminRoute>
-              <Dashboard />
+              <AdminLayout>
+                <NewDashboard />
+              </AdminLayout>
             </AdminRoute>
           }
         />

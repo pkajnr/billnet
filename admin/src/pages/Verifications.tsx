@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ADMIN_API, API_BASE_URL, getAdminHeaders } from '../utils/api';
 import { showToast } from '../utils/toast';
 
 interface Verification {
@@ -36,8 +37,8 @@ const Verifications: React.FC = () => {
   }, []);
 
   const fetchVerifications = async () => {
-    const adminSecret = localStorage.getItem('adminSecret');
-    if (!adminSecret) {
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
       showToast.error('Admin authentication required');
       return;
     }
@@ -61,8 +62,6 @@ const Verifications: React.FC = () => {
   };
 
   const handleDecision = async (userId: number, decision: 'approved' | 'rejected') => {
-    const adminSecret = localStorage.getItem('adminSecret');
-    
     try {
       const response = await fetch(`${API_BASE_URL}/api/user/verification/admin/decision`, {
         method: 'POST',

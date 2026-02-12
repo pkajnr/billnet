@@ -1,3 +1,6 @@
+// Load environment variables FIRST before anything else
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -8,7 +11,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const emailService = require('./emailService');
-require('dotenv').config();
+const { router: adminAuthRouter, authenticateAdmin, checkPermission } = require('./adminAuth');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -55,11 +58,30 @@ const upload = multer({
 
 // Middleware
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000',
+      process.env.CORS_ORIGIN
+    ].filter(Boolean);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.CORS_ORIGIN === '*') {
+      callback(null, true);
+    } else {
+      callback(null, true); // Allow all in development
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
 app.use('/uploads', express.static(uploadsDir));
+
+// Admin authentication routes
+app.use('/api/admin/auth', adminAuthRouter);
 
 // Database connection - support both DATABASE_URL and individual variables
 const dbConfig = process.env.DATABASE_URL 
@@ -1257,16 +1279,14 @@ app.post('/api/user/verification/admin/decision', async (req, res) => {
 
 // ============ ADMIN ENDPOINTS ============
 
-// Verify admin secret
-app.get('/api/admin/verify', (req, res) => {
-  if (!requireAdminSecret(req, res)) return;
-  res.json({ message: 'Admin verified' });
+// Verify admin authentication
+app.get('/api/admin/verify', authenticateAdmin, (req, res) => {
+  res.json({ message: 'Admin verified', admin: req.admin });
 });
 
 // Get admin statistics
-app.get('/api/admin/stats', async (req, res) => {
+app.get('/api/admin/stats', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
 
     const [usersResult, ideasResult, investmentsResult, verificationsResult, revenueResult] = await Promise.all([
       pool.query('SELECT COUNT(*) as count FROM users'),
@@ -1293,10 +1313,152 @@ app.get('/api/admin/stats', async (req, res) => {
   }
 });
 
-// Get all users
-app.get('/api/admin/users', async (req, res) => {
+// Get comprehensive analytics
+app.get('/api/admin/analytics', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
+    // User metrics
+    const [
+      totalUsers,
+      verifiedUsers,
+      certifiedUsers,
+      newUsersThisMonth,
+      newUsersToday,
+      usersByRole
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM users'),
+      pool.query('SELECT COUNT(*) as count FROM users WHERE is_email_verified = true'),
+      pool.query('SELECT COUNT(*) as count FROM users WHERE is_certified = true'),
+      pool.query('SELECT COUNT(*) as count FROM users WHERE created_at >= date_trunc(\'month\', CURRENT_DATE)'),
+      pool.query('SELECT COUNT(*) as count FROM users WHERE DATE(created_at) = CURRENT_DATE'),
+      pool.query('SELECT role, COUNT(*) as count FROM users GROUP BY role')
+    ]);
+
+    // Idea metrics
+    const [
+      totalIdeas,
+      approvedIdeas,
+      pendingIdeas,
+      rejectedIdeas,
+      ideasThisMonth,
+      ideasByCategory
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM ideas'),
+      pool.query('SELECT COUNT(*) as count FROM ideas WHERE status = $1', ['approved']),
+      pool.query('SELECT COUNT(*) as count FROM ideas WHERE status = $1', ['pending']),
+      pool.query('SELECT COUNT(*) as count FROM ideas WHERE status = $1', ['rejected']),
+      pool.query('SELECT COUNT(*) as count FROM ideas WHERE created_at >= date_trunc(\'month\', CURRENT_DATE)'),
+      pool.query('SELECT category, COUNT(*) as count FROM ideas GROUP BY category')
+    ]);
+
+    // Investment metrics
+    const [
+      totalInvestments,
+      completedInvestments,
+      totalInvestmentAmount,
+      avgInvestmentAmount,
+      investmentsThisMonth,
+      topInvestors
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM investments'),
+      pool.query('SELECT COUNT(*) as count FROM investments WHERE status = $1', ['completed']),
+      pool.query('SELECT COALESCE(SUM(amount), 0) as total FROM investments'),
+      pool.query('SELECT COALESCE(AVG(amount), 0) as avg FROM investments WHERE status = $1', ['completed']),
+      pool.query('SELECT COUNT(*) as count FROM investments WHERE created_at >= date_trunc(\'month\', CURRENT_DATE)'),
+      pool.query(`
+        SELECT u.first_name, u.last_name, u.email, COUNT(i.id) as investment_count, 
+               COALESCE(SUM(i.amount), 0) as total_invested
+        FROM users u
+        JOIN investments i ON u.id = i.investor_id
+        GROUP BY u.id, u.first_name, u.last_name, u.email
+        ORDER BY total_invested DESC
+        LIMIT 10
+      `)
+    ]);
+
+    // Verification metrics
+    const [
+      totalVerifications,
+      pendingVerifications,
+      approvedVerifications,
+      rejectedVerifications
+    ] = await Promise.all([
+      pool.query('SELECT COUNT(*) as count FROM user_verifications'),
+      pool.query('SELECT COUNT(*) as count FROM user_verifications WHERE status = $1', ['pending']),
+      pool.query('SELECT COUNT(*) as count FROM user_verifications WHERE status = $1', ['approved']),
+      pool.query('SELECT COUNT(*) as count FROM user_verifications WHERE status = $1', ['rejected'])
+    ]);
+
+    // Growth metrics - Last 30 days
+    const last30DaysUsers = await pool.query(`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM users
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(created_at)
+      ORDER BY date
+    `);
+
+    const last30DaysIdeas = await pool.query(`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM ideas
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days'
+      GROUP BY DATE(created_at)
+      ORDER BY date
+    `);
+
+    const last30DaysRevenue = await pool.query(`
+      SELECT DATE(created_at) as date, COALESCE(SUM(amount), 0) as total
+      FROM investments
+      WHERE created_at >= CURRENT_DATE - INTERVAL '30 days' AND status = 'completed'
+      GROUP BY DATE(created_at)
+      ORDER BY date
+    `);
+
+    res.json({
+      users: {
+        total: parseInt(totalUsers.rows[0].count),
+        verified: parseInt(verifiedUsers.rows[0].count),
+        certified: parseInt(certifiedUsers.rows[0].count),
+        newThisMonth: parseInt(newUsersThisMonth.rows[0].count),
+        newToday: parseInt(newUsersToday.rows[0].count),
+        byRole: usersByRole.rows
+      },
+      ideas: {
+        total: parseInt(totalIdeas.rows[0].count),
+        approved: parseInt(approvedIdeas.rows[0].count),
+        pending: parseInt(pendingIdeas.rows[0].count),
+        rejected: parseInt(rejectedIdeas.rows[0].count),
+        newThisMonth: parseInt(ideasThisMonth.rows[0].count),
+        byCategory: ideasByCategory.rows
+      },
+      investments: {
+        total: parseInt(totalInvestments.rows[0].count),
+        completed: parseInt(completedInvestments.rows[0].count),
+        totalAmount: parseFloat(totalInvestmentAmount.rows[0].total),
+        avgAmount: parseFloat(avgInvestmentAmount.rows[0].avg),
+        newThisMonth: parseInt(investmentsThisMonth.rows[0].count),
+        topInvestors: topInvestors.rows
+      },
+      verifications: {
+        total: parseInt(totalVerifications.rows[0].count),
+        pending: parseInt(pendingVerifications.rows[0].count),
+        approved: parseInt(approvedVerifications.rows[0].count),
+        rejected: parseInt(rejectedVerifications.rows[0].count)
+      },
+      growth: {
+        users: last30DaysUsers.rows,
+        ideas: last30DaysIdeas.rows,
+        revenue: last30DaysRevenue.rows
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    res.status(500).json({ error: 'Server error fetching analytics' });
+  }
+});
+
+// Get all users
+app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+  try {
 
     const result = await pool.query(`
       SELECT id, first_name, last_name, email, role, is_certified, is_email_verified, 
@@ -1325,9 +1487,8 @@ app.get('/api/admin/users', async (req, res) => {
 });
 
 // Delete user
-app.delete('/api/admin/users/:userId', async (req, res) => {
+app.delete('/api/admin/users/:userId', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
 
     const { userId } = req.params;
     await pool.query('DELETE FROM users WHERE id = $1', [userId]);
@@ -1339,9 +1500,8 @@ app.delete('/api/admin/users/:userId', async (req, res) => {
 });
 
 // Get all verifications
-app.get('/api/admin/verifications', async (req, res) => {
+app.get('/api/admin/verifications', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
 
     const result = await pool.query(`
       SELECT v.id, v.user_id, v.status, v.country, v.id_number, v.document_type, 
@@ -1390,9 +1550,8 @@ app.get('/api/admin/verifications', async (req, res) => {
 });
 
 // Get all ideas for admin
-app.get('/api/admin/ideas', async (req, res) => {
+app.get('/api/admin/ideas', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
 
     const result = await pool.query(`
       SELECT i.id, i.title, i.description, i.category, i.funding_goal, i.current_funding,
@@ -1427,9 +1586,8 @@ app.get('/api/admin/ideas', async (req, res) => {
 });
 
 // Delete idea
-app.delete('/api/admin/ideas/:ideaId', async (req, res) => {
+app.delete('/api/admin/ideas/:ideaId', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
 
     const { ideaId } = req.params;
     await pool.query('DELETE FROM ideas WHERE id = $1', [ideaId]);
@@ -1441,9 +1599,8 @@ app.delete('/api/admin/ideas/:ideaId', async (req, res) => {
 });
 
 // Update idea status
-app.put('/api/admin/ideas/:ideaId/status', async (req, res) => {
+app.put('/api/admin/ideas/:ideaId/status', authenticateAdmin, async (req, res) => {
   try {
-    if (!requireAdminSecret(req, res)) return;
 
     const { ideaId } = req.params;
     const { status } = req.body;

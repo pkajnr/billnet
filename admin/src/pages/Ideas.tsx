@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ADMIN_API, getAdminHeaders } from '../utils/api';
 import { showToast } from '../utils/toast';
 
 interface Idea {
@@ -29,8 +30,8 @@ const Ideas: React.FC = () => {
   }, []);
 
   const fetchIdeas = async () => {
-    const adminSecret = localStorage.getItem('adminSecret');
-    if (!adminSecret) {
+    const adminToken = localStorage.getItem('adminToken');
+    if (!adminToken) {
       showToast.error('Admin authentication required');
       return;
     }
@@ -58,7 +59,6 @@ const Ideas: React.FC = () => {
       return;
     }
 
-    const adminSecret = localStorage.getItem('adminSecret');
     try {
       const response = await fetch(`${ADMIN_API.IDEAS}/${ideaId}`, {
         method: 'DELETE',
@@ -77,7 +77,6 @@ const Ideas: React.FC = () => {
   };
 
   const handleUpdateStatus = async (ideaId: number, newStatus: string) => {
-    const adminSecret = localStorage.getItem('adminSecret');
     try {
       const response = await fetch(`${ADMIN_API.IDEAS}/${ideaId}/status`, {
         method: 'PUT',
