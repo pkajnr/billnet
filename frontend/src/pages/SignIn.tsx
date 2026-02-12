@@ -28,6 +28,9 @@ export default function SignIn() {
       if (response.ok) {
         localStorage.setItem('token', data.token);
         
+        // Dispatch custom event to update Navbar
+        window.dispatchEvent(new Event('authChange'));
+        
         // Save user data if provided by backend
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user));

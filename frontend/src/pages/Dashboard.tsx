@@ -54,6 +54,10 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
+    
+    // Dispatch custom event to update Navbar
+    window.dispatchEvent(new Event('authChange'));
+    
     navigate('/');
   };
 

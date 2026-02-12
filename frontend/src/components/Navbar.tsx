@@ -21,15 +21,34 @@ export default function Navbar() {
 
   useEffect(() => {
     // Check login status and load user role
-    const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
-    
-    if (token) {
-      // All users have wallets now
-      fetchWalletBalance();
-      // Load notifications
-      fetchNotifications();
-    }
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('token');
+      setIsLoggedIn(!!token);
+      
+      if (token) {
+        // All users have wallets now
+        fetchWalletBalance();
+        // Load notifications
+        fetchNotifications();
+      }
+    };
+
+    checkAuthStatus();
+
+    // Listen for custom auth change event
+    const handleAuthChange = () => {
+      checkAuthStatus();
+    };
+
+    // Listen for storage changes (for cross-tab sync)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token') {
+        checkAuthStatus();
+      }
+    };
+
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', handleStorageChange);
 
     // Close dropdowns when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
@@ -42,7 +61,12 @@ export default function Navbar() {
       }
     };
     document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    
+    return () => {
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('storage', handleStorageChange);
+      document.removeEventListener('click', handleClickOutside);
+    };
   }, []);
 
   const fetchWalletBalance = async () => {
@@ -156,6 +180,10 @@ export default function Navbar() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Dispatch custom event to update Navbar
+    window.dispatchEvent(new Event('authChange'));
+    
     window.location.href = '/';
   };
 
