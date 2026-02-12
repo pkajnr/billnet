@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: billnet-backend
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DB_HOST
+        fromDatabase:
+          name: billnet-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: billnet-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: billnet-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: billnet-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: billnet-db
+          property: password
+      - key: CORS_ORIGIN
+        value: https://your-frontend-url.vercel.app
+
+databases:
+  - name: billnet-db
+    databaseName: billnet
+    user: billnet
+    plan: free

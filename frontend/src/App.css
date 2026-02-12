@@ -1,0 +1,15 @@
+/* App-level shells to reinforce the Amazon-inspired black/white theme */
+.app-shell {
+  min-height: 100vh;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(249, 249, 249, 0.98) 100%);
+  color: var(--apple-ink);
+}
+
+.app-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: none;
+  z-index: -1;
+}
