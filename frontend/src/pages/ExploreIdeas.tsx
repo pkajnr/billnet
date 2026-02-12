@@ -72,7 +72,7 @@ export default function ExploreIdeas() {
   const [expandedComments, setExpandedComments] = useState<number[]>([]);
   const [comments, setComments] = useState<{ [key: number]: Comment[] }>({});
   const [newComment, setNewComment] = useState<{ [key: number]: string }>({});
-  const [userRole, setUserRole] = useState<string>('');
+  const [_userRole, setUserRole] = useState<string>('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   
