@@ -453,12 +453,14 @@ export default function IdeaDetail() {
       {/* Bidding Modal */}
       {showBiddingModal && idea && (
         <BiddingModal
-          idea={idea}
-          onClose={() => setShowBiddingModal(false)}
-          onSuccess={() => {
+          ideaId={idea.id}
+          ideaTitle={idea.title}
+          currentBalance={0}
+          onBidPlaced={() => {
             setShowBiddingModal(false);
             fetchIdeaDetails();
           }}
+          onClose={() => setShowBiddingModal(false)}
         />
       )}
     </div>

@@ -40,7 +40,7 @@ export const initWalletDetection = () => {
   disableAutoConnect();
   
   // Log wallet availability for debugging
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.log('Wallet Detection:', {
       available: isWalletAvailable(),
       isMetaMask: isMetaMaskInstalled(),

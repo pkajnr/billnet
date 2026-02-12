@@ -140,10 +140,10 @@ export default function CompleteProfile() {
                   Profile Image (Optional)
                 </label>
                 <FileUpload
-                  onUploadComplete={handleImageUpload}
+                  type="profile"
+                  onUploadSuccess={handleImageUpload}
                   accept="image/*"
-                  maxSize={5 * 1024 * 1024}
-                  label="Upload Profile Picture"
+                  maxSize={5}
                 />
                 {formData.profileImage && (
                   <div className="mt-3 flex items-center gap-3">

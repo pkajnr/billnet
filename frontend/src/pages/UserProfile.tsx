@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import { Notification } from '../components/NotificationToast';
 
@@ -41,8 +41,7 @@ interface Investment {
 }
 
 export default function UserProfile() {
-  const { userId } = useParams<{ userId: string }>();
-  const [user, setUser] = useState<UserData | null>(null);
+  const { userId } = useParams<{ userId: string }>();  const navigate = useNavigate();  const [user, setUser] = useState<UserData | null>(null);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [isLoading, setIsLoading] = useState(true);

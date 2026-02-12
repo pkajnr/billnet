@@ -35,14 +35,14 @@ export default function EditPost() {
   const [website, setWebsite] = useState('');
   
   // Business-specific fields
-  const [businessYearsActive, setBusinessYearsActive] = useState('');
-  const [businessRevenue, setBusinessRevenue] = useState('');
-  const [employeeCount, setEmployeeCount] = useState('');
-  const [revenueGrowth, setRevenueGrowth] = useState('');
+  const [businessYearsActive] = useState('');
+  const [businessRevenue] = useState('');
+  const [employeeCount] = useState('');
+  const [revenueGrowth] = useState('');
   
   // Share-specific fields
-  const [companyValuation, setCompanyValuation] = useState('');
-  const [sharesOffered, setSharesOffered] = useState('');
+  const [companyValuation] = useState('');
+  const [sharesOffered] = useState('');
   
   const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
   const [newFiles, setNewFiles] = useState<FileWithType[]>([]);
