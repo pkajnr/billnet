@@ -21,10 +21,11 @@ export default function CompleteProfile() {
     }));
   };
 
-  const handleImageUpload = (url: string) => {
+  const handleImageUpload = (url: string | string[]) => {
+    const imageUrl = Array.isArray(url) ? url[0] : url;
     setFormData(prev => ({
       ...prev,
-      profileImage: url
+      profileImage: imageUrl
     }));
   };
 
