@@ -1748,6 +1748,75 @@ app.get('/api/users/suggested', authenticateToken, async (req, res) => {
   }
 });
 
+// Search users for chat by name, inferred username, email, or id
+app.get('/api/users/search', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const q = (req.query.q || '').toString().trim();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+
+    if (!q) {
+      return res.json({ users: [] });
+    }
+
+    const isNumericQuery = /^\d+$/.test(q);
+    if (!isNumericQuery && q.length < 2) {
+      return res.json({ users: [] });
+    }
+
+    const params = [userId];
+    let query = `SELECT
+      u.id,
+      u.first_name,
+      u.last_name,
+      u.email,
+      u.role,
+      u.profile_image,
+      split_part(u.email, '@', 1) as username
+    FROM users u
+    WHERE u.id != $1`;
+
+    if (isNumericQuery) {
+      const idParamIndex = params.length + 1;
+      query += ` AND u.id = $${idParamIndex}`;
+      params.push(parseInt(q, 10));
+    } else {
+      const searchParamIndex = params.length + 1;
+      const normalizedQuery = `%${q.toLowerCase()}%`;
+      query += ` AND (
+        LOWER(u.first_name) LIKE $${searchParamIndex}
+        OR LOWER(u.last_name) LIKE $${searchParamIndex}
+        OR LOWER(u.first_name || ' ' || u.last_name) LIKE $${searchParamIndex}
+        OR LOWER(u.email) LIKE $${searchParamIndex}
+        OR LOWER(split_part(u.email, '@', 1)) LIKE $${searchParamIndex}
+        OR CAST(u.id AS TEXT) LIKE $${searchParamIndex}
+      )`;
+      params.push(normalizedQuery);
+    }
+
+    query += ` ORDER BY u.created_at DESC LIMIT $${params.length + 1}`;
+    params.push(limit);
+
+    const result = await pool.query(query, params);
+
+    const users = result.rows.map((u) => ({
+      id: u.id,
+      firstName: u.first_name,
+      lastName: u.last_name,
+      name: `${u.first_name} ${u.last_name}`,
+      username: u.username,
+      email: u.email,
+      role: u.role,
+      profileImage: u.profile_image,
+    }));
+
+    res.json({ users });
+  } catch (error) {
+    console.error('Error searching users:', error);
+    res.status(500).json({ error: 'Server error searching users' });
+  }
+});
+
 // ============ IDEAS ENDPOINTS ============
 
 // Get all ideas
@@ -3897,22 +3966,42 @@ app.post('/api/upload/idea/:ideaId', authenticateToken, upload.array('attachment
 app.get('/api/messages/conversations', authenticateToken, async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT DISTINCT ON (other_user_id)
-        CASE 
-          WHEN sender_id = $1 THEN receiver_id 
-          ELSE sender_id 
-        END as other_user_id,
-        u.first_name, u.last_name, u.profile_image,
-        m.content as last_message,
-        m.created_at as last_message_time,
-        m.is_read
-      FROM messages m
-      JOIN users u ON u.id = CASE 
-        WHEN m.sender_id = $1 THEN m.receiver_id 
-        ELSE m.sender_id 
-      END
-      WHERE m.sender_id = $1 OR m.receiver_id = $1
-      ORDER BY other_user_id, m.created_at DESC`,
+      `WITH conversation_messages AS (
+        SELECT
+          CASE
+            WHEN m.sender_id = $1 THEN m.receiver_id
+            ELSE m.sender_id
+          END AS other_user_id,
+          m.content,
+          m.created_at
+        FROM messages m
+        WHERE m.sender_id = $1 OR m.receiver_id = $1
+      ),
+      latest_messages AS (
+        SELECT DISTINCT ON (other_user_id)
+          other_user_id,
+          content AS last_message,
+          created_at AS last_message_time
+        FROM conversation_messages
+        ORDER BY other_user_id, created_at DESC
+      )
+      SELECT
+        lm.other_user_id,
+        u.first_name,
+        u.last_name,
+        u.profile_image,
+        lm.last_message,
+        lm.last_message_time,
+        COALESCE((
+          SELECT COUNT(*)
+          FROM messages unread
+          WHERE unread.receiver_id = $1
+            AND unread.sender_id = lm.other_user_id
+            AND unread.is_read = false
+        ), 0) AS unread_count
+      FROM latest_messages lm
+      JOIN users u ON u.id = lm.other_user_id
+      ORDER BY lm.last_message_time DESC`,
       [req.user.id]
     );
 
@@ -4038,6 +4127,18 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
       [userId]
     );
 
+    const messagesResult = await pool.query(
+      `SELECT m.id, 'message' as type, u.first_name, u.last_name,
+              m.content, m.created_at, u.id as user_id
+       FROM messages m
+       JOIN users u ON m.sender_id = u.id
+       WHERE m.receiver_id = $1
+         AND m.is_read = false
+       ORDER BY m.created_at DESC
+       LIMIT 5`,
+      [userId]
+    );
+
     const notifications = [
       ...bidsResult.rows.map(r => ({
         id: `bid_${r.id}`,
@@ -4067,6 +4168,15 @@ app.get('/api/notifications', authenticateToken, async (req, res) => {
         createdAt: r.created_at,
         relatedUserId: r.user_id,
         relatedIdeaId: r.idea_id,
+      })),
+      ...messagesResult.rows.map(r => ({
+        id: `message_${r.id}`,
+        type: 'message',
+        title: 'New Message',
+        message: `${r.first_name} ${r.last_name}: ${r.content}`,
+        isRead: false,
+        createdAt: r.created_at,
+        relatedUserId: r.user_id,
       })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 

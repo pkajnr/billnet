@@ -44,6 +44,7 @@ interface Investment {
 export default function UserProfile() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')?.id;
   const [user, setUser] = useState<UserData | null>(null);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -174,6 +175,16 @@ export default function UserProfile() {
     }
   };
 
+  const handleMessage = () => {
+    if (!user) return;
+    navigate('/messages', {
+      state: {
+        startConversationUserId: user.id,
+        startConversationUserName: `${user.first_name} ${user.last_name}`,
+      },
+    });
+  };
+
   if (isLoading || !user) {
     return (
       <div className="min-h-screen bg-white py-12 px-6">
@@ -220,16 +231,26 @@ export default function UserProfile() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={handleFollow}
-              className={`px-6 py-2 rounded-lg font-inter font-semibold transition ${
-                isFollowing
-                  ? 'bg-gray-200 text-gray-900 hover:bg-gray-300'
-                  : 'bg-black text-white hover:bg-gray-800'
-              }`}
-            >
-              {isFollowing ? '✓ Following' : '+ Follow'}
-            </button>
+            <div className="flex items-center gap-2">
+              {currentUserId !== user.id && (
+                <button
+                  onClick={handleMessage}
+                  className="px-5 py-2 rounded-lg font-inter font-semibold transition bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  💬 Message
+                </button>
+              )}
+              <button
+                onClick={handleFollow}
+                className={`px-6 py-2 rounded-lg font-inter font-semibold transition ${
+                  isFollowing
+                    ? 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+                    : 'bg-black text-white hover:bg-gray-800'
+                }`}
+              >
+                {isFollowing ? '✓ Following' : '+ Follow'}
+              </button>
+            </div>
           </div>
 
           {user.bio && (

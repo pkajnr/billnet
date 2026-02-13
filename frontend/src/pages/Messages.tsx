@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 
 interface ChatMessage {
@@ -9,20 +9,33 @@ interface ChatMessage {
   content: string;
   timestamp: string;
   isOwn?: boolean;
-  isTyping?: boolean;
+  deliveryStatus?: 'sending' | 'sent' | 'read' | 'failed';
 }
 
 interface Conversation {
   userId: number;
   userName: string;
+  profileImage?: string | null;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
   isOnline?: boolean;
 }
 
+interface ChatUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  name: string;
+  username?: string;
+  email?: string;
+  role?: string;
+  profileImage?: string | null;
+}
+
 export default function Messages() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
 
   // Real-time chat state
@@ -31,15 +44,63 @@ export default function Messages() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [isTyping, setIsTyping] = useState(false);
-  const [showNewConversation, setShowNewConversation] = useState(false);
-  const [newConversationUserId, setNewConversationUserId] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<any>(null);
+  const [users, setUsers] = useState<ChatUser[]>([]);
+  const [showPeople, setShowPeople] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchingUsers, setIsSearchingUsers] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement | null>(null);
+  const currentUserId = JSON.parse(localStorage.getItem('user') || '{}')?.id;
 
   useEffect(() => {
     fetchConversations();
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConversations();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!showPeople) return;
+
+    const trimmedQuery = searchQuery.trim();
+    const isNumericQuery = /^\d+$/.test(trimmedQuery);
+
+    if (!trimmedQuery) {
+      setUsers([]);
+      setIsSearchingUsers(false);
+      return;
+    }
+
+    if (!isNumericQuery && trimmedQuery.length < 2) {
+      setUsers([]);
+      setIsSearchingUsers(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      fetchUsers(trimmedQuery);
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [showPeople, searchQuery]);
+
+  useEffect(() => {
+    const startConversationUserId = Number((location.state as any)?.startConversationUserId);
+    const startConversationUserName = (location.state as any)?.startConversationUserName;
+    if (Number.isFinite(startConversationUserId) && startConversationUserId > 0) {
+      setSelectedConversation({
+        userId: startConversationUserId,
+        userName: startConversationUserName || 'User',
+        lastMessage: '',
+        lastMessageTime: new Date().toISOString(),
+        unreadCount: 0,
+      });
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (selectedConversation) {
@@ -52,17 +113,15 @@ export default function Messages() {
   }, [selectedConversation]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [chatMessages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [selectedConversation?.userId, chatMessages.length]);
 
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch('http://localhost:5000/api/messages/conversations', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -72,34 +131,19 @@ export default function Messages() {
 
       if (response.ok) {
         const data = await response.json();
-        const list = Array.isArray(data) ? data : Array.isArray((data as any)?.messages) ? (data as any).messages : [];
-        
-        const convMap = new Map<number, Conversation>();
-        list.forEach((m: any) => {
-          const senderId = m.senderId || m.sender_id;
-          const senderName = m.senderName || m.sender_name || m.sender_name_full || m.senderNameFull || 'Unknown';
-          const isRead = m.isRead !== undefined ? !!m.isRead : !!m.is_read;
-          
-          if (!convMap.has(senderId)) {
-            convMap.set(senderId, {
-              userId: senderId,
-              userName: senderName,
-              lastMessage: m.content || m.subject || '',
-              lastMessageTime: m.createdAt || m.created_at,
-              unreadCount: 0,
-              isOnline: Math.random() > 0.5,
-            });
-          }
-          
-          const conv = convMap.get(senderId)!;
-          if (!isRead) conv.unreadCount++;
-          if (new Date(m.createdAt || m.created_at) > new Date(conv.lastMessageTime)) {
-            conv.lastMessage = m.content || m.subject || '';
-            conv.lastMessageTime = m.createdAt || m.created_at;
-          }
-        });
+        const list = Array.isArray((data as any)?.conversations) ? (data as any).conversations : [];
 
-        const sortedConversations = Array.from(convMap.values()).sort(
+        const normalizedConversations: Conversation[] = list.map((item: any) => ({
+          userId: item.other_user_id,
+          userName: `${item.first_name || ''} ${item.last_name || ''}`.trim() || 'Unknown',
+          profileImage: item.profile_image || null,
+          lastMessage: item.last_message || '',
+          lastMessageTime: item.last_message_time || new Date().toISOString(),
+          unreadCount: Number(item.unread_count) || 0,
+          isOnline: false,
+        }));
+
+        const sortedConversations = normalizedConversations.sort(
           (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
         );
         setConversations(sortedConversations);
@@ -113,11 +157,11 @@ export default function Messages() {
     }
   };
 
-  const fetchChatMessages = async (userId: number) => {
+  const fetchUsers = async (query = '') => {
     try {
+      setIsSearchingUsers(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages', {
-        method: 'GET',
+      const response = await fetch(`http://localhost:5000/api/users/search?q=${encodeURIComponent(query)}&limit=30`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -126,25 +170,41 @@ export default function Messages() {
 
       if (response.ok) {
         const data = await response.json();
-        const list = Array.isArray(data) ? data : Array.isArray((data as any)?.messages) ? (data as any).messages : [];
-        const currentUserId = parseInt(localStorage.getItem('userId') || '0', 10);
+        setUsers(Array.isArray(data.users) ? data.users : []);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setIsSearchingUsers(false);
+    }
+  };
+
+  const fetchChatMessages = async (userId: number) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/messages/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const list = Array.isArray((data as any)?.messages) ? (data as any).messages : [];
         
         const filtered = list
-          .filter((m: any) => {
-            const senderId = m.senderId || m.sender_id;
-            return senderId === userId || senderId === currentUserId;
-          })
-          .map((m: any) => {
-            const senderId = m.senderId || m.sender_id;
-            return {
-              id: m.id,
-              senderId,
-              senderName: m.senderName || m.sender_name || 'Unknown',
-              content: m.content,
-              timestamp: m.createdAt || m.created_at,
-              isOwn: senderId === currentUserId,
-            };
-          })
+          .map((m: any) => ({
+            id: m.id,
+            senderId: m.sender_id,
+            senderName: `${m.sender_first_name || ''} ${m.sender_last_name || ''}`.trim() || 'Unknown',
+            content: m.content,
+            timestamp: m.created_at,
+            isOwn: m.sender_id === currentUserId,
+            deliveryStatus: m.sender_id === currentUserId
+              ? (m.is_read ? 'read' : 'sent')
+              : undefined,
+          }))
           .sort((a: any, b: any) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
         setChatMessages(filtered);
@@ -152,16 +212,6 @@ export default function Messages() {
     } catch (error) {
       console.error('Error fetching chat messages:', error);
     }
-  };
-
-  const handleTyping = () => {
-    setIsTyping(true);
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    typingTimeoutRef.current = setTimeout(() => {
-      setIsTyping(false);
-    }, 1000);
   };
 
   const handleSendChatMessage = async (e: React.FormEvent) => {
@@ -172,50 +222,21 @@ export default function Messages() {
     const message = chatInput;
     setChatInput('');
 
+    const tempId = Date.now();
+    const pendingMessage: ChatMessage = {
+      id: tempId,
+      senderId: currentUserId,
+      senderName: 'You',
+      content: message,
+      timestamp: new Date().toISOString(),
+      isOwn: true,
+      deliveryStatus: 'sending',
+    };
+
+    setChatMessages((prev) => [...prev, pendingMessage]);
+
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages/reply', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipientId: selectedConversation.userId,
-          subject: 'Chat',
-          content: message,
-        }),
-      });
-
-      if (response.ok) {
-        const currentUserId = parseInt(localStorage.getItem('userId') || '0', 10);
-        const newMsg: ChatMessage = {
-          id: Date.now(),
-          senderId: currentUserId,
-          senderName: 'You',
-          content: message,
-          timestamp: new Date().toISOString(),
-          isOwn: true,
-        };
-        setChatMessages([...chatMessages, newMsg]);
-        setIsTyping(false);
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setChatInput(message);
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleStartNewConversation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newConversationUserId.trim()) return;
-
-    setIsSending(true);
-    try {
-      const token = localStorage.getItem('token');
-      const userId = parseInt(newConversationUserId, 10);
       const response = await fetch('http://localhost:5000/api/messages', {
         method: 'POST',
         headers: {
@@ -223,21 +244,62 @@ export default function Messages() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          receiverId: userId,
-          content: 'Hi! I would like to connect with you.',
+          receiverId: selectedConversation.userId,
+          content: message,
         }),
       });
 
       if (response.ok) {
-        setNewConversationUserId('');
-        setShowNewConversation(false);
+        const responseData = await response.json();
+        setChatMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempId
+              ? {
+                  ...msg,
+                  id: responseData?.message?.id || tempId,
+                  timestamp: responseData?.message?.created_at || msg.timestamp,
+                  deliveryStatus: 'sent',
+                }
+              : msg
+          )
+        );
         fetchConversations();
+      } else {
+        setChatMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === tempId
+              ? { ...msg, deliveryStatus: 'failed' }
+              : msg
+          )
+        );
       }
     } catch (error) {
-      console.error('Error starting conversation:', error);
+      console.error('Error sending message:', error);
+      setChatMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === tempId
+            ? { ...msg, deliveryStatus: 'failed' }
+            : msg
+        )
+      );
     } finally {
       setIsSending(false);
     }
+  };
+
+  const selectUserForChat = (user: ChatUser) => {
+    setSelectedConversation({
+      userId: user.id,
+      userName: user.name || `${user.firstName} ${user.lastName}`,
+      profileImage: user.profileImage,
+      lastMessage: '',
+      lastMessageTime: new Date().toISOString(),
+      unreadCount: 0,
+      isOnline: false,
+    });
+    setShowPeople(false);
+    setSearchQuery('');
+    setUsers([]);
   };
 
   if (isLoading) {
@@ -259,32 +321,60 @@ export default function Messages() {
             <p className="text-gray-600 mt-2">Connect with entrepreneurs and investors in real-time</p>
           </div>
           <button
-            onClick={() => setShowNewConversation(!showNewConversation)}
+            onClick={() => {
+              const nextState = !showPeople;
+              setShowPeople(nextState);
+              if (!nextState) {
+                setSearchQuery('');
+                setUsers([]);
+              }
+            }}
             className="bg-linear-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg font-semibold hover:shadow-lg transition duration-200"
           >
             + New Chat
           </button>
         </div>
 
-        {showNewConversation && (
+        {showPeople && (
           <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Start a New Conversation</h3>
-            <form onSubmit={handleStartNewConversation} className="flex gap-3">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Pick a user to start chatting</h3>
+            <div className="mb-4 relative">
               <input
-                type="number"
-                placeholder="Enter user ID"
-                value={newConversationUserId}
-                onChange={(e) => setNewConversationUserId(e.target.value)}
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, username, email, or ID"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
               />
-              <button
-                type="submit"
-                disabled={isSending || !newConversationUserId.trim()}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 transition duration-200"
-              >
-                {isSending ? 'Starting...' : 'Start Chat'}
-              </button>
-            </form>
+              <p className="text-xs text-gray-500 mt-2">Type at least 2 characters (or a numeric ID) to search.</p>
+              {searchQuery.trim() && ((/^\d+$/.test(searchQuery.trim()) || searchQuery.trim().length >= 2)) && (
+                <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-72 overflow-y-auto">
+                  {isSearchingUsers ? (
+                    <p className="text-sm text-gray-500 p-3">Searching users...</p>
+                  ) : users.length === 0 ? (
+                    <p className="text-sm text-gray-500 p-3">No users found</p>
+                  ) : (
+                    users.slice(0, 10).map((user) => (
+                      <button
+                        key={user.id}
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          selectUserForChat(user);
+                        }}
+                        className="w-full text-left p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition"
+                      >
+                        <p className="font-semibold text-gray-900 truncate">{user.name || `${user.firstName} ${user.lastName}`}</p>
+                        <p className="text-xs text-gray-500 mt-1">@{user.username || 'user'} • {user.email}</p>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            {!searchQuery.trim() && <p className="text-sm text-gray-500">Start typing to search users.</p>}
+            {!!searchQuery.trim() && (!/^\d+$/.test(searchQuery.trim()) && searchQuery.trim().length < 2) && (
+              <p className="text-sm text-gray-500">Keep typing to search users.</p>
+            )}
           </div>
         )}
 
@@ -349,7 +439,7 @@ export default function Messages() {
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div ref={chatScrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                   {chatMessages.length > 0 ? (
                     chatMessages.map((msg) => (
                       <div key={msg.id} className={`flex ${msg.isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -363,6 +453,14 @@ export default function Messages() {
                           <p className="text-sm">{msg.content}</p>
                           <p className={`text-xs mt-1 ${msg.isOwn ? 'text-blue-100' : 'text-gray-500'}`}>
                             {new Date(msg.timestamp).toLocaleTimeString()}
+                            {msg.isOwn && (
+                              <span className="ml-2">
+                                {msg.deliveryStatus === 'sending' && '◷'}
+                                {msg.deliveryStatus === 'sent' && '✓'}
+                                {msg.deliveryStatus === 'read' && '✓✓'}
+                                {msg.deliveryStatus === 'failed' && '⚠ Not sent'}
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
@@ -372,14 +470,6 @@ export default function Messages() {
                       <p className="text-gray-500">No messages yet</p>
                     </div>
                   )}
-                  {isTyping && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                      <div className="w-3 h-3 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
                 </div>
 
                 <div className="p-4 border-t border-gray-200 bg-gray-50">
@@ -387,10 +477,7 @@ export default function Messages() {
                     <input
                       type="text"
                       value={chatInput}
-                      onChange={(e) => {
-                        setChatInput(e.target.value);
-                        handleTyping();
-                      }}
+                      onChange={(e) => setChatInput(e.target.value)}
                       placeholder="Type a message..."
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
                     />

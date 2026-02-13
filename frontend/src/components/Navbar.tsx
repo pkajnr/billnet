@@ -8,6 +8,7 @@ export default function Navbar() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [notifications, setNotifications] = useState<Array<{
     id: string;
     type: 'bid' | 'follow' | 'comment' | 'favorite' | 'message';
@@ -20,6 +21,8 @@ export default function Navbar() {
   }>>([]);
 
   useEffect(() => {
+    let refreshInterval: number | undefined;
+
     // Check login status and load user role
     const checkAuthStatus = () => {
       const token = localStorage.getItem('token');
@@ -30,6 +33,22 @@ export default function Navbar() {
         fetchWalletBalance();
         // Load notifications
         fetchNotifications();
+        // Load unread message count
+        fetchUnreadMessagesCount();
+
+        if (refreshInterval) {
+          window.clearInterval(refreshInterval);
+        }
+        refreshInterval = window.setInterval(() => {
+          fetchNotifications();
+          fetchUnreadMessagesCount();
+        }, 15000);
+      } else {
+        setNotifications([]);
+        setUnreadMessagesCount(0);
+        if (refreshInterval) {
+          window.clearInterval(refreshInterval);
+        }
       }
     };
 
@@ -63,6 +82,9 @@ export default function Navbar() {
     document.addEventListener('click', handleClickOutside);
     
     return () => {
+      if (refreshInterval) {
+        window.clearInterval(refreshInterval);
+      }
       window.removeEventListener('authChange', handleAuthChange);
       window.removeEventListener('storage', handleStorageChange);
       document.removeEventListener('click', handleClickOutside);
@@ -118,6 +140,32 @@ export default function Navbar() {
         },
       ];
       setNotifications(mockNotifications);
+    }
+  };
+
+  const fetchUnreadMessagesCount = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUnreadMessagesCount(0);
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/messages/conversations', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const conversations = Array.isArray(data.conversations) ? data.conversations : [];
+        const unreadCount = conversations.reduce((sum: number, c: any) => sum + (Number(c.unread_count) || 0), 0);
+        setUnreadMessagesCount(unreadCount);
+      }
+    } catch (error) {
+      console.error('Error fetching unread messages count:', error);
     }
   };
 
@@ -228,8 +276,13 @@ export default function Navbar() {
                 <Link to="/my-ideas" className="nav-link">
                   Posts
                 </Link>
-                <Link to="/messages" className="nav-link">
+                <Link to="/messages" className="nav-link relative">
                   Messages
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute top-1 right-1 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{backgroundColor: 'var(--color-primary)'}}>
+                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                    </span>
+                  )}
                 </Link>
                 <Link to="/analytics" className="nav-link">
                   Analytics
@@ -472,9 +525,14 @@ export default function Navbar() {
                 </Link>
                 <Link
                   to="/messages"
-                  className="block px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition"
+                  className="block px-3 py-2 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded transition relative"
                 >
                   Messages
+                  {unreadMessagesCount > 0 && (
+                    <span className="absolute right-3 top-2 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{backgroundColor: 'var(--color-primary)'}}>
+                      {unreadMessagesCount > 9 ? '9+' : unreadMessagesCount}
+                    </span>
+                  )}
                 </Link>
                 <button
                   onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
