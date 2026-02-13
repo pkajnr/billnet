@@ -2,6 +2,87 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 
+const COMMON_PASSWORDS = [
+  'password',
+  'password123',
+  'qwerty',
+  'qwerty123',
+  '123456',
+  '123456789',
+  'admin',
+  'welcome',
+  'letmein',
+  'iloveyou',
+  'abc123',
+  'default',
+  'changeme',
+];
+
+const validateSignupPassword = (
+  password: string,
+  context: { firstName: string; lastName: string; email: string }
+): string[] => {
+  const issues: string[] = [];
+  const trimmedPassword = password.trim();
+
+  if (trimmedPassword.length < 12) {
+    issues.push('Password must be at least 12 characters long.');
+  }
+
+  if (trimmedPassword.length > 128) {
+    issues.push('Password must be 128 characters or fewer.');
+  }
+
+  if (/\s/.test(password)) {
+    issues.push('Password cannot contain spaces.');
+  }
+
+  if (!/[a-z]/.test(password)) {
+    issues.push('Password must include at least one lowercase letter.');
+  }
+
+  if (!/[A-Z]/.test(password)) {
+    issues.push('Password must include at least one uppercase letter.');
+  }
+
+  if (!/[0-9]/.test(password)) {
+    issues.push('Password must include at least one number.');
+  }
+
+  if (!/[^A-Za-z0-9]/.test(password)) {
+    issues.push('Password must include at least one special character.');
+  }
+
+  if (/(.)\1{2,}/.test(password)) {
+    issues.push('Password cannot contain the same character repeated 3 or more times in a row.');
+  }
+
+  const lowerPassword = password.toLowerCase();
+  const lowerNoSymbols = lowerPassword.replace(/[^a-z0-9]/g, '');
+  const emailLocalPart = context.email.split('@')[0]?.toLowerCase() || '';
+  const firstName = context.firstName.toLowerCase();
+  const lastName = context.lastName.toLowerCase();
+
+  if (COMMON_PASSWORDS.some(common => lowerNoSymbols.includes(common))) {
+    issues.push('Password is too common. Choose a more unique password.');
+  }
+
+  const personalTokens = [emailLocalPart, firstName, lastName]
+    .map(token => token.replace(/[^a-z0-9]/g, ''))
+    .filter(token => token.length >= 3);
+
+  if (personalTokens.some(token => lowerNoSymbols.includes(token))) {
+    issues.push('Password cannot include your name or email username.');
+  }
+
+  const weakSequences = ['1234', 'abcd', 'qwerty'];
+  if (weakSequences.some(sequence => lowerNoSymbols.includes(sequence))) {
+    issues.push('Password cannot contain predictable sequences like 1234, abcd, or qwerty.');
+  }
+
+  return issues;
+};
+
 export default function SignUp() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -13,7 +94,7 @@ export default function SignUp() {
     agreeToTerms: false,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -28,23 +109,38 @@ export default function SignUp() {
         [name]: value
       }));
     }
+
+    if (errors.length > 0) {
+      setErrors([]);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const validationErrors = validateSignupPassword(formData.password, {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+    });
+
+    if (validationErrors.length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
     
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
+      setErrors(['Passwords do not match.']);
       return;
     }
 
     if (!formData.agreeToTerms) {
-      setError('Please agree to the terms and conditions');
+      setErrors(['Please agree to the terms and conditions.']);
       return;
     }
 
     setIsLoading(true);
-    setError('');
+    setErrors([]);
     
     try {
       const response = await fetch('http://localhost:5000/api/auth/signup', {
@@ -66,11 +162,15 @@ export default function SignUp() {
         showToast.success('Account created! Please check your email to verify your account.', 'Success');
         navigate('/signin');
       } else {
-        setError(data.error || 'Sign up failed. Please try again.');
+        if (Array.isArray(data.passwordErrors) && data.passwordErrors.length > 0) {
+          setErrors(data.passwordErrors);
+        } else {
+          setErrors([data.error || 'Sign up failed. Please try again.']);
+        }
       }
     } catch (error) {
       console.error('Error:', error);
-      setError('An error occurred during sign up. Please try again.');
+      setErrors(['An error occurred during sign up. Please try again.']);
     } finally {
       setIsLoading(false);
     }
@@ -86,9 +186,14 @@ export default function SignUp() {
           <div className="card">
             <h2 className="text-2xl font-semibold mb-4" style={{color: 'var(--color-text)'}}>Create account</h2>
             
-            {error && (
-              <div className="form-error mb-4">
-                ⚠️ {error}
+            {errors.length > 0 && (
+              <div className="form-error mb-4" role="alert" aria-live="polite">
+                <p className="font-semibold mb-2">Please fix the following:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  {errors.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
               </div>
             )}
             
@@ -154,8 +259,11 @@ export default function SignUp() {
                   onChange={handleChange}
                   required
                   className="form-input"
-                  placeholder="At least 8 characters"
+                  placeholder="Use 12+ characters"
                 />
+                <p className="text-xs text-secondary mt-1">
+                  Use 12+ characters with uppercase, lowercase, number, and symbol.
+                </p>
               </div>
 
               <div>

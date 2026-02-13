@@ -13,6 +13,88 @@ const fs = require('fs');
 const emailService = require('./emailService');
 const { router: adminAuthRouter, authenticateAdmin, checkPermission } = require('./adminAuth');
 
+const COMMON_PASSWORDS = new Set([
+  'password',
+  'password123',
+  'qwerty',
+  'qwerty123',
+  '123456',
+  '123456789',
+  'admin',
+  'welcome',
+  'letmein',
+  'iloveyou',
+  'abc123',
+  'default',
+  'changeme'
+]);
+
+function validateSignupPassword(password, context = {}) {
+  const issues = [];
+  const passwordValue = typeof password === 'string' ? password : '';
+  const trimmedPassword = passwordValue.trim();
+
+  if (trimmedPassword.length < 12) {
+    issues.push('Password must be at least 12 characters long.');
+  }
+
+  if (trimmedPassword.length > 128) {
+    issues.push('Password must be 128 characters or fewer.');
+  }
+
+  if (/\s/.test(passwordValue)) {
+    issues.push('Password cannot contain spaces.');
+  }
+
+  if (!/[a-z]/.test(passwordValue)) {
+    issues.push('Password must include at least one lowercase letter.');
+  }
+
+  if (!/[A-Z]/.test(passwordValue)) {
+    issues.push('Password must include at least one uppercase letter.');
+  }
+
+  if (!/[0-9]/.test(passwordValue)) {
+    issues.push('Password must include at least one number.');
+  }
+
+  if (!/[^A-Za-z0-9]/.test(passwordValue)) {
+    issues.push('Password must include at least one special character.');
+  }
+
+  if (/(.)\1{2,}/.test(passwordValue)) {
+    issues.push('Password cannot contain the same character repeated 3 or more times in a row.');
+  }
+
+  const lowerPassword = passwordValue.toLowerCase();
+  const lowerNoSymbols = lowerPassword.replace(/[^a-z0-9]/g, '');
+  const emailLocalPart = (context.email || '').split('@')[0].toLowerCase();
+  const firstName = (context.firstName || '').toLowerCase();
+  const lastName = (context.lastName || '').toLowerCase();
+
+  for (const commonPassword of COMMON_PASSWORDS) {
+    if (lowerNoSymbols.includes(commonPassword)) {
+      issues.push('Password is too common. Choose a more unique password.');
+      break;
+    }
+  }
+
+  const personalTokens = [emailLocalPart, firstName, lastName]
+    .map((token) => token.replace(/[^a-z0-9]/g, ''))
+    .filter((token) => token.length >= 3);
+
+  if (personalTokens.some((token) => lowerNoSymbols.includes(token))) {
+    issues.push('Password cannot include your name or email username.');
+  }
+
+  const weakSequences = ['1234', 'abcd', 'qwerty'];
+  if (weakSequences.some((sequence) => lowerNoSymbols.includes(sequence))) {
+    issues.push('Password cannot contain predictable sequences like 1234, abcd, or qwerty.');
+  }
+
+  return issues;
+}
+
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -669,6 +751,11 @@ app.post('/api/auth/signup', async (req, res) => {
     // Validation
     if (!firstName || !lastName || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const passwordIssues = validateSignupPassword(password, { firstName, lastName, email });
+    if (passwordIssues.length > 0) {
+      return res.status(400).json({ error: passwordIssues[0], passwordErrors: passwordIssues });
     }
 
     // Default role is 'user' if not provided
@@ -1677,7 +1764,8 @@ app.get('/api/ideas', authenticateToken, async (req, res) => {
         i.funding_goal, i.current_funding, i.status, i.created_at,
         i.user_id, i.post_type, i.equity_percentage,
         u.first_name, 
-        u.last_name
+        u.last_name,
+        u.profile_image
       FROM ideas i
       JOIN users u ON i.user_id = u.id
       WHERE i.status = 'active' OR i.status = 'funded'
@@ -1723,6 +1811,7 @@ app.get('/api/ideas', authenticateToken, async (req, res) => {
       userId: row.user_id,
       firstName: row.first_name,
       lastName: row.last_name,
+      profileImage: row.profile_image,
       postType: row.post_type || 'idea',
       equityPercentage: row.equity_percentage ? parseFloat(row.equity_percentage) : null,
       files: attachmentsMap[row.id] || []
@@ -1746,16 +1835,21 @@ app.get('/api/ideas/my-ideas', authenticateToken, async (req, res) => {
       [req.user.id]
     );
 
-    const ideas = result.rows.map(row => ({
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      category: row.category,
-      fundingGoal: parseFloat(row.funding_goal),
-      currentFunding: parseFloat(row.current_funding),
-      status: row.status,
-      createdAt: row.created_at
-    }));
+    const ideas = result.rows.map((row) => {
+      const fundingGoal = Number.parseFloat(row.funding_goal);
+      const currentFunding = Number.parseFloat(row.current_funding);
+
+      return {
+        id: row.id,
+        title: row.title,
+        description: row.description,
+        category: row.category,
+        fundingGoal: Number.isFinite(fundingGoal) ? fundingGoal : 0,
+        currentFunding: Number.isFinite(currentFunding) ? currentFunding : 0,
+        status: row.status,
+        createdAt: row.created_at
+      };
+    });
 
     res.json({ ideas });
   } catch (error) {
@@ -1773,7 +1867,7 @@ app.get('/api/ideas/:ideaId', authenticateToken, async (req, res) => {
     const ideaResult = await pool.query(
       `SELECT i.id, i.user_id, i.title, i.description, i.category, i.funding_goal, i.current_funding, 
               i.status, i.post_type, i.equity_percentage, i.created_at, i.updated_at,
-              u.first_name, u.last_name, u.email, u.role
+              u.first_name, u.last_name, u.email, u.role, u.profile_image
        FROM ideas i
        JOIN users u ON i.user_id = u.id
        WHERE i.id = $1`,
@@ -1857,7 +1951,8 @@ app.get('/api/ideas/:ideaId', authenticateToken, async (req, res) => {
         firstName: idea.first_name,
         lastName: idea.last_name,
         email: idea.email,
-        role: idea.role
+        role: idea.role,
+        profileImage: idea.profile_image
       },
       details: details ? {
         marketSize: details.market_size,
@@ -3509,7 +3604,7 @@ app.get('/api/ideas/search', authenticateToken, async (req, res) => {
     let query = `SELECT i.id, i.title, i.description, i.category, 
                         i.funding_goal, i.current_funding, i.status, i.created_at,
                         i.user_id, i.post_type, i.equity_percentage,
-                        u.first_name, u.last_name,
+                        u.first_name, u.last_name, u.profile_image,
                         COUNT(DISTINCT c.id) as comment_count,
                         COUNT(DISTINCT f.id) as favorite_count,
                         COUNT(DISTINCT b.id) as bid_count
@@ -3553,7 +3648,7 @@ app.get('/api/ideas/search', authenticateToken, async (req, res) => {
       paramCount++;
     }
 
-    query += ` GROUP BY i.id, u.first_name, u.last_name`;
+    query += ` GROUP BY i.id, u.first_name, u.last_name, u.profile_image`;
 
     if (sortBy === 'trending') {
       query += ` ORDER BY (COUNT(DISTINCT c.id) + COUNT(DISTINCT f.id) + COUNT(DISTINCT b.id)) DESC`;
@@ -3603,6 +3698,7 @@ app.get('/api/ideas/search', authenticateToken, async (req, res) => {
       userId: row.user_id,
       firstName: row.first_name,
       lastName: row.last_name,
+      profileImage: row.profile_image,
       postType: row.post_type || 'idea',
       equityPercentage: row.equity_percentage ? parseFloat(row.equity_percentage) : null,
       files: attachmentsMap[row.id] || [],

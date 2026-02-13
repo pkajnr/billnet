@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import BidManagementModal from '../components/BidManagementModal';
+import { formatCurrencyShort } from '../utils/formatCurrency';
 
 interface Idea {
   id: number;
@@ -46,7 +47,22 @@ export default function MyIdeas() {
             : Array.isArray((data as any)?.data)
               ? (data as any).data
               : [];
-        setIdeas(normalized);
+        const safeIdeas: Idea[] = normalized.map((item: Partial<Idea>) => {
+          const fundingGoal = Number(item.fundingGoal);
+          const currentFunding = Number(item.currentFunding);
+
+          return {
+            id: Number(item.id),
+            title: item.title || 'Untitled',
+            description: item.description || '',
+            category: item.category || 'other',
+            fundingGoal: Number.isFinite(fundingGoal) ? fundingGoal : 0,
+            currentFunding: Number.isFinite(currentFunding) ? currentFunding : 0,
+            status: item.status || 'active',
+            createdAt: item.createdAt || new Date().toISOString(),
+          };
+        });
+        setIdeas(safeIdeas);
       } else if (response.status === 401) {
         navigate('/signin');
       }
@@ -62,7 +78,14 @@ export default function MyIdeas() {
     : [];
 
   const getProgressPercentage = (current: number, goal: number) => {
-    return Math.min((current / goal) * 100, 100);
+    const safeCurrent = Number.isFinite(current) ? current : 0;
+    const safeGoal = Number.isFinite(goal) ? goal : 0;
+
+    if (safeGoal <= 0 || safeCurrent <= 0) {
+      return 0;
+    }
+
+    return Math.min((safeCurrent / safeGoal) * 100, 100);
   };
 
   const handleDelete = async (ideaId: number) => {
@@ -122,7 +145,7 @@ export default function MyIdeas() {
             </div>
             <div className="card p-6">
               <p className="text-xs font-semibold uppercase tracking-wide mb-2" style={{color: 'var(--color-text-secondary)'}}>Total Raised</p>
-              <p className="text-3xl font-bold" style={{color: 'var(--color-primary)'}}>${ideas.reduce((sum, i) => sum + i.currentFunding, 0).toLocaleString()}</p>
+              <p className="text-3xl font-bold" style={{color: 'var(--color-primary)'}}>{formatCurrencyShort(ideas.reduce((sum, i) => sum + i.currentFunding, 0))}</p>
             </div>
           </div>
         )}
@@ -144,7 +167,10 @@ export default function MyIdeas() {
         {/* Ideas List */}
         {filteredIdeas.length > 0 ? (
           <div className="space-y-4">
-            {filteredIdeas.map((idea) => (
+            {filteredIdeas.map((idea) => {
+              const progress = getProgressPercentage(idea.currentFunding, idea.fundingGoal);
+
+              return (
               <div key={idea.id} className="card p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div 
@@ -170,11 +196,11 @@ export default function MyIdeas() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Goal</p>
-                    <p className="text-slate-900 font-medium">${idea.fundingGoal.toLocaleString()}</p>
+                    <p className="text-slate-900 font-medium">{formatCurrencyShort(idea.fundingGoal)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Raised</p>
-                    <p className="text-blue-600 font-semibold">${idea.currentFunding.toLocaleString()}</p>
+                    <p className="text-blue-600 font-semibold">{formatCurrencyShort(idea.currentFunding)}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1">Posted</p>
@@ -186,12 +212,12 @@ export default function MyIdeas() {
                 <div className="mb-4">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs font-semibold text-slate-700">Funding Progress</span>
-                    <span className="text-sm font-bold text-blue-600">{Math.round(getProgressPercentage(idea.currentFunding, idea.fundingGoal))}%</span>
+                    <span className="text-sm font-bold text-blue-600">{Math.round(progress)}%</span>
                   </div>
                   <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                     <div 
                       className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 transition-all duration-300 rounded-full"
-                      style={{ width: `${getProgressPercentage(idea.currentFunding, idea.fundingGoal)}%` }}
+                      style={{ width: `${progress}%` }}
                     ></div>
                   </div>
                 </div>
@@ -224,7 +250,8 @@ export default function MyIdeas() {
                   </button>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="card text-center py-16 p-8">

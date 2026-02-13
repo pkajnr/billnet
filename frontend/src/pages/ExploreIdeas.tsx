@@ -4,6 +4,7 @@ import { SkeletonDashboard } from '../components/SkeletonLoader';
 import BiddingModal from '../components/BiddingModal';
 import CreatePost from '../components/CreatePost';
 import { showToast } from '../utils/toast';
+import { formatCurrencyShort } from '../utils/formatCurrency';
 
 // Format number to shortened format (e.g., 4200 -> 4.2k, 1500000 -> 1.5M)
 const formatCount = (count: number | undefined): string => {
@@ -30,6 +31,7 @@ interface Idea {
   userId: number;
   firstName: string;
   lastName: string;
+  profileImage?: string;
   postType: 'idea' | 'business' | 'share' | 'shares';
   equityPercentage?: number;
   commentCount?: number;
@@ -742,8 +744,16 @@ export default function ExploreIdeas() {
                 {/* Post Header */}
                 <div className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => navigate(`/profile/${idea.userId}`)}>
-                    <div className="w-10 h-10 bg-linear-to-br from-gray-400 to-gray-600 rounded-full flex items-center justify-center text-white font-roboto font-bold">
-                      {idea.firstName?.[0]}{idea.lastName?.[0]}
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-linear-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white font-roboto font-bold">
+                      {idea.profileImage ? (
+                        <img
+                          src={idea.profileImage}
+                          alt={`${idea.firstName} ${idea.lastName}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{idea.firstName?.[0]}{idea.lastName?.[0]}</span>
+                      )}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -801,7 +811,7 @@ export default function ExploreIdeas() {
                         <div className="bg-white/80 rounded-lg p-3 backdrop-blur-sm">
                           <div className="flex justify-between items-center mb-2">
                             <span className="font-inter text-xs font-semibold text-purple-900">Funding Goal</span>
-                            <span className="font-roboto text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">${idea.fundingGoal.toLocaleString()}</span>
+                            <span className="font-roboto text-lg font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">{formatCurrencyShort(idea.fundingGoal)}</span>
                           </div>
                           <div className="w-full bg-purple-100 h-3 rounded-full overflow-hidden">
                             <div 
@@ -811,7 +821,7 @@ export default function ExploreIdeas() {
                           </div>
                           <div className="flex justify-between items-center mt-2">
                             <p className="font-inter text-xs text-purple-700 font-medium">
-                              ${idea.currentFunding.toLocaleString()} raised
+                              {formatCurrencyShort(idea.currentFunding)} raised
                             </p>
                             <span className="font-inter text-xs font-bold text-purple-600">
                               {Math.round(getProgressPercentage(idea.currentFunding, idea.fundingGoal))}%
@@ -848,7 +858,7 @@ export default function ExploreIdeas() {
                           <div className="flex items-center justify-between mb-3">
                             <div className="flex-1">
                               <span className="font-inter text-xs font-semibold text-orange-700 block mb-1">💰 Asking Price</span>
-                              <span className="font-roboto text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">${idea.fundingGoal.toLocaleString()}</span>
+                              <span className="font-roboto text-2xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">{formatCurrencyShort(idea.fundingGoal)}</span>
                             </div>
                             <div className="text-right">
                               <div className="bg-orange-100 px-3 py-1 rounded-full mb-1">
@@ -897,7 +907,7 @@ export default function ExploreIdeas() {
                           <div className="grid grid-cols-2 gap-3 mb-3">
                             <div className="bg-emerald-50 p-3 rounded-lg">
                               <span className="font-inter text-xs font-semibold text-emerald-900 block mb-1">💵 Price per Share</span>
-                              <span className="font-roboto text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">${idea.fundingGoal.toLocaleString()}</span>
+                              <span className="font-roboto text-xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">{formatCurrencyShort(idea.fundingGoal)}</span>
                             </div>
                             <div className="bg-teal-50 p-3 rounded-lg">
                               <span className="font-inter text-xs font-semibold text-teal-900 block mb-1">📊 Equity Offered</span>

@@ -9,6 +9,7 @@ interface Owner {
   lastName: string;
   email: string;
   role: string;
+  profileImage?: string;
 }
 
 interface Details {
@@ -219,10 +220,21 @@ export default function IdeaDetail() {
                     </span>
                   </div>
                   <h1 className="text-3xl font-bold text-slate-900 mb-2">{idea.title}</h1>
-                  <div className="flex items-center text-sm text-slate-600">
+                  <div className="flex items-center text-sm text-slate-600 gap-2 flex-wrap">
                     <span>Posted by</span>
-                    <Link to={`/profile/${idea.userId}`} className="ml-2 font-semibold text-blue-600 hover:text-blue-800">
-                      {idea.owner.firstName} {idea.owner.lastName}
+                    <Link to={`/profile/${idea.userId}`} className="flex items-center gap-2 font-semibold text-blue-600 hover:text-blue-800">
+                      <span className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-gray-400 to-gray-600 text-white text-xs flex items-center justify-center">
+                        {idea.owner.profileImage ? (
+                          <img
+                            src={idea.owner.profileImage}
+                            alt={`${idea.owner.firstName} ${idea.owner.lastName}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span>{idea.owner.firstName?.[0]}{idea.owner.lastName?.[0]}</span>
+                        )}
+                      </span>
+                      <span>{idea.owner.firstName} {idea.owner.lastName}</span>
                     </Link>
                     <span className="mx-2">•</span>
                     <span className="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs font-medium rounded">
