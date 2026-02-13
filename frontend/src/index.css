@@ -6,6 +6,8 @@
    ============================================ */
 
 :root {
+  --font-amazon: "Amazon Ember", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
   /* Primary Color Palette - Amazon-Inspired */
   --color-primary: #FF9900;          /* Amazon Orange/Yellow */
   --color-primary-dark: #E88B00;
@@ -59,9 +61,25 @@
 }
 
 @layer base {
-  * {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  *, *::before, *::after {
+    font-family: var(--font-amazon) !important;
     letter-spacing: -0.01em;
+  }
+
+  html,
+  body,
+  input,
+  textarea,
+  select,
+  button {
+    font-family: var(--font-amazon) !important;
+  }
+
+  .font-inter,
+  .font-roboto,
+  .font-sans,
+  .font-display {
+    font-family: var(--font-amazon) !important;
   }
 
   body {

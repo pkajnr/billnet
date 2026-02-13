@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import { Notification } from '../components/NotificationToast';
+import { formatCurrencyShort } from '../utils/formatCurrency';
 
 interface UserData {
   id: number;
@@ -41,12 +42,15 @@ interface Investment {
 }
 
 export default function UserProfile() {
-  const { userId } = useParams<{ userId: string }>();  const navigate = useNavigate();  const [user, setUser] = useState<UserData | null>(null);
+  const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+  const [user, setUser] = useState<UserData | null>(null);
   const [ideas, setIdeas] = useState<Idea[]>([]);
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ideas' | 'investments'>('ideas');
   const [isFollowing, setIsFollowing] = useState(false);
+  const [profileImageFailed, setProfileImageFailed] = useState(false);
 
   useEffect(() => {
     if (userId) {
@@ -77,6 +81,7 @@ export default function UserProfile() {
         };
 
         setUser(normalized);
+        setProfileImageFailed(false);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -186,8 +191,17 @@ export default function UserProfile() {
         <div className="bg-white rounded-lg border border-gray-200 p-8 mb-6">
           <div className="flex items-start justify-between mb-6">
             <div className="flex items-start gap-6">
-              <div className="w-20 h-20 bg-gray-300 rounded-full flex items-center justify-center text-gray-700 font-roboto font-bold text-2xl">
-                {user.first_name?.[0]}{user.last_name?.[0]}
+              <div className="w-20 h-20 bg-gray-300 rounded-full overflow-hidden flex items-center justify-center text-gray-700 font-roboto font-bold text-2xl">
+                {user.profile_image && !profileImageFailed ? (
+                  <img
+                    src={user.profile_image}
+                    alt={`${user.first_name} ${user.last_name}`}
+                    className="w-full h-full object-cover"
+                    onError={() => setProfileImageFailed(true)}
+                  />
+                ) : (
+                  <span>{user.first_name?.[0]}{user.last_name?.[0]}</span>
+                )}
               </div>
               <div>
                 <h1 className="font-roboto text-3xl font-bold text-gray-900 mb-2">
@@ -291,7 +305,7 @@ export default function UserProfile() {
                           <p className="font-inter text-sm text-gray-600 line-clamp-2">{idea.description}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-roboto font-bold text-gray-900">${idea.funding_goal.toLocaleString()}</p>
+                          <p className="font-roboto font-bold text-gray-900">{formatCurrencyShort(idea.funding_goal)}</p>
                           <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-full mt-2 ${
                             idea.status === 'funded' ? 'bg-green-100 text-green-700' :
                             idea.status === 'active' ? 'bg-blue-100 text-blue-700' :
@@ -329,7 +343,7 @@ export default function UserProfile() {
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="font-roboto font-bold text-gray-900">${investment.amount.toLocaleString()}</p>
+                          <p className="font-roboto font-bold text-gray-900">{formatCurrencyShort(investment.amount)}</p>
                           <span className={`inline-block text-xs font-semibold px-2 py-1 rounded-full mt-2 ${
                             investment.status === 'completed' ? 'bg-green-100 text-green-700' :
                             investment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
