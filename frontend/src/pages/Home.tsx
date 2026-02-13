@@ -56,7 +56,10 @@ export default function Home() {
 
           <div className="relative float">
             <div className="absolute inset-0 blur-3xl rounded-3xl" style={{background: 'linear-gradient(to bottom right, rgba(255, 153, 0, 0.1), rgba(0, 113, 133, 0.1))'}}></div>
-            <div className="relative card p-8">
+            <div
+              className="relative card p-8"
+              style={{ backgroundColor: 'rgba(35, 47, 62, 0.92)', borderColor: 'rgba(255,255,255,0.12)' }}
+            >
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <p className="text-sm text-white/60 mb-1">Live Mandates</p>
@@ -82,7 +85,11 @@ export default function Home() {
                   tag: 'Lead Secured',
                   color: 'from-amber-500 to-orange-600'
                 }].map((item) => (
-                  <div key={item.name} className="card p-4 hover:scale-[1.02] transition-transform">
+                  <div
+                    key={item.name}
+                    className="card p-4 hover:scale-[1.02] transition-transform"
+                    style={{ backgroundColor: 'rgba(35, 47, 62, 0.82)', borderColor: 'rgba(255,255,255,0.12)' }}
+                  >
                     <div className="flex items-start justify-between mb-3">
                       <div>
                         <p className="text-white font-semibold">{item.name}</p>
@@ -136,7 +143,11 @@ export default function Home() {
               accent: 'from-amber-500 to-orange-600',
               icon: '🤝'
             }].map((card) => (
-              <div key={card.title} className="card p-6 space-y-4 group">
+              <div
+                key={card.title}
+                className="card p-6 space-y-4 group"
+                style={{ backgroundColor: 'rgba(35, 47, 62, 0.82)', borderColor: 'rgba(255,255,255,0.12)' }}
+              >
                 <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${card.accent} flex items-center justify-center text-2xl shadow-lg`}>
                   {card.icon}
                 </div>
