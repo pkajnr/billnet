@@ -10,12 +10,13 @@ CREATE TABLE users (
   last_name VARCHAR(100) NOT NULL,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  role VARCHAR(20) NOT NULL CHECK (role IN ('entrepreneur', 'investor')),
+  role VARCHAR(20) NOT NULL CHECK (role IN ('entrepreneur', 'investor', 'user')),
   profile_image VARCHAR(500),
   bio TEXT,
   is_email_verified BOOLEAN DEFAULT FALSE,
   email_verified_at TIMESTAMP,
   verification_token VARCHAR(255),
+  is_profile_completed BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

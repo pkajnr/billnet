@@ -206,13 +206,14 @@ const initializeDatabaseTables = async () => {
         last_name VARCHAR(100) NOT NULL,
         email VARCHAR(255) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
-        role VARCHAR(20) NOT NULL CHECK (role IN ('entrepreneur', 'investor')),
+        role VARCHAR(20) NOT NULL CHECK (role IN ('entrepreneur', 'investor', 'user')),
         profile_image VARCHAR(500),
         bio TEXT,
         wallet_balance DECIMAL(15, 2) DEFAULT 0,
         is_email_verified BOOLEAN DEFAULT FALSE,
         email_verified_at TIMESTAMP,
         verification_token VARCHAR(255),
+        is_profile_completed BOOLEAN DEFAULT FALSE,
         is_certified BOOLEAN DEFAULT FALSE,
         certification_type VARCHAR(50),
         certification_date TIMESTAMP,
@@ -241,6 +242,24 @@ const initializeDatabaseTables = async () => {
       ALTER TABLE users
       ADD COLUMN IF NOT EXISTS certification_date TIMESTAMP
     `);
+
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS is_profile_completed BOOLEAN DEFAULT FALSE
+    `);
+
+    // Ensure role constraint supports all application roles
+    try {
+      await pool.query(`
+        ALTER TABLE users DROP CONSTRAINT IF EXISTS users_role_check
+      `);
+      await pool.query(`
+        ALTER TABLE users ADD CONSTRAINT users_role_check
+        CHECK (role IN ('entrepreneur', 'investor', 'user'))
+      `);
+    } catch (err) {
+      console.log('Note: Could not update users role constraint:', err.message);
+    }
 
     // Add bitcoin_address column for payment methods
     await pool.query(`
