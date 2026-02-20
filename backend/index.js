@@ -896,6 +896,45 @@ app.get('/api/auth/verify-email', async (req, res) => {
   }
 });
 
+// Resend Email Verification
+app.post('/api/auth/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const result = await pool.query(
+      'SELECT id, first_name, email, is_email_verified FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.json({ message: 'If an account exists for this email, a verification link has been sent.' });
+    }
+
+    const user = result.rows[0];
+
+    if (user.is_email_verified) {
+      return res.json({ message: 'This email is already verified. You can sign in.' });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    await pool.query('UPDATE users SET verification_token = $1 WHERE id = $2', [verificationToken, user.id]);
+
+    const sent = await sendVerificationEmail(user.email, user.first_name, verificationToken);
+    if (!sent) {
+      return res.status(500).json({ error: 'Unable to send verification email right now. Please try again shortly.' });
+    }
+
+    res.json({ message: 'Verification email sent. Please check your inbox.' });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ error: 'Server error while resending verification email' });
+  }
+});
+
 // Development: Auto-verify user by email (for testing without email service)
 app.post('/api/auth/verify-test', async (req, res) => {
   try {

@@ -350,9 +350,19 @@ export default function ExploreIdeas() {
         const data = await response.json();
         if (data.favorited) {
           setFavoriteIds(prev => [...prev, ideaId]);
+          setIdeas(prev => prev.map(idea =>
+            idea.id === ideaId
+              ? { ...idea, saveCount: (idea.saveCount || 0) + 1 }
+              : idea
+          ));
           showToast.success('Added to your favorites', 'Favorited');
         } else {
           setFavoriteIds(prev => prev.filter(id => id !== ideaId));
+          setIdeas(prev => prev.map(idea =>
+            idea.id === ideaId
+              ? { ...idea, saveCount: Math.max((idea.saveCount || 0) - 1, 0) }
+              : idea
+          ));
           showToast.info('Removed from favorites', 'Unfavorited');
         }
       }
@@ -367,9 +377,19 @@ export default function ExploreIdeas() {
     try {
       if (navigator.share) {
         await navigator.share({ title: idea.title, text: idea.description, url });
+        setIdeas(prev => prev.map(post =>
+          post.id === idea.id
+            ? { ...post, shareCount: (post.shareCount || 0) + 1 }
+            : post
+        ));
         showToast.success('Shared successfully', 'Shared');
       } else if (navigator.clipboard) {
         await navigator.clipboard.writeText(url);
+        setIdeas(prev => prev.map(post =>
+          post.id === idea.id
+            ? { ...post, shareCount: (post.shareCount || 0) + 1 }
+            : post
+        ));
         showToast.success('Link copied to clipboard', 'Copied');
       }
     } catch (err) {
@@ -379,6 +399,11 @@ export default function ExploreIdeas() {
   };
 
   const handleReport = (idea: Idea) => {
+    setIdeas(prev => prev.map(post =>
+      post.id === idea.id
+        ? { ...post, reportCount: (post.reportCount || 0) + 1 }
+        : post
+    ));
     showToast.warning('Thanks for your report. Our team will review this post.', 'Report Submitted');
     console.log('Reported idea', idea.id);
   };
@@ -428,6 +453,11 @@ export default function ExploreIdeas() {
       if (response.ok) {
         setNewComment(prev => ({ ...prev, [ideaId]: '' }));
         fetchComments(ideaId);
+        setIdeas(prev => prev.map(idea =>
+          idea.id === ideaId
+            ? { ...idea, commentCount: (idea.commentCount || 0) + 1 }
+            : idea
+        ));
         showToast.success('Your comment has been posted', 'Comment Added');
       }
     } catch (error) {
@@ -1030,13 +1060,13 @@ export default function ExploreIdeas() {
                       favoriteIds.includes(idea.id) ? 'text-red-600' : 'text-gray-600'
                     }`}
                   >
-                    {favoriteIds.includes(idea.id) ? '❤️' : '🤍'} Save
+                    {favoriteIds.includes(idea.id) ? '❤️' : '🤍'} Save {formatCount(idea.saveCount || 0)}
                   </button>
                   <button
                     onClick={() => toggleComments(idea.id)}
                     className="flex-1 min-w-[120px] flex items-center justify-center gap-2 font-inter text-sm font-semibold text-gray-600 py-2 rounded-lg hover:bg-gray-100 transition"
                   >
-                    💬 Comment
+                    💬 Comment {formatCount(idea.commentCount || 0)}
                   </button>
                   <button
                     onClick={() => handleBidClick(idea)}
@@ -1054,13 +1084,13 @@ export default function ExploreIdeas() {
                     onClick={() => handleShare(idea)}
                     className="flex-1 min-w-[120px] flex items-center justify-center gap-2 font-inter text-sm font-semibold text-gray-600 py-2 rounded-lg hover:bg-gray-100 transition"
                   >
-                    🔗 Share
+                    🔗 Share {formatCount(idea.shareCount || 0)}
                   </button>
                   <button
                     onClick={() => handleReport(idea)}
                     className="flex-1 min-w-[120px] flex items-center justify-center gap-2 font-inter text-sm font-semibold text-gray-600 py-2 rounded-lg hover:bg-gray-100 transition"
                   >
-                    🚩 Report
+                    🚩 Report {formatCount(idea.reportCount || 0)}
                   </button>
                 </div>
 

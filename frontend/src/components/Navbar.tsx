@@ -42,7 +42,7 @@ export default function Navbar() {
         refreshInterval = window.setInterval(() => {
           fetchNotifications();
           fetchUnreadMessagesCount();
-        }, 15000);
+        }, 5000);
       } else {
         setNotifications([]);
         setUnreadMessagesCount(0);
@@ -66,8 +66,24 @@ export default function Navbar() {
       }
     };
 
+    const handleWindowFocus = () => {
+      if (localStorage.getItem('token')) {
+        fetchNotifications();
+        fetchUnreadMessagesCount();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && localStorage.getItem('token')) {
+        fetchNotifications();
+        fetchUnreadMessagesCount();
+      }
+    };
+
     window.addEventListener('authChange', handleAuthChange);
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Close dropdowns when clicking outside
     const handleClickOutside = (e: MouseEvent) => {
@@ -87,6 +103,8 @@ export default function Navbar() {
       }
       window.removeEventListener('authChange', handleAuthChange);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('click', handleClickOutside);
     };
   }, []);
@@ -128,18 +146,7 @@ export default function Navbar() {
       }
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      // Fall back to mock notifications
-      const mockNotifications = [
-        {
-          id: '1',
-          type: 'bid' as const,
-          title: 'New Bid Received',
-          message: 'Someone placed a bid on your idea',
-          isRead: false,
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      setNotifications(mockNotifications);
+      setNotifications([]);
     }
   };
 

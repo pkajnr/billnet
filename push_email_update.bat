@@ -12,7 +12,7 @@ git branch --show-current
 echo.
 
 echo Step 2: Stage updated files...
-git add backend/emailService.js backend/index.js backend/.env.example backend/render.yaml admin/src/utils/api.ts admin/src/pages/Settings.tsx frontend/src/pages/VerifyEmail.tsx HOSTING_GUIDE.md push_email_update.bat
+git add backend/emailService.js backend/index.js backend/.env.example backend/render.yaml admin/src/utils/api.ts admin/src/pages/Settings.tsx frontend/src/pages/VerifyEmail.tsx frontend/src/pages/SignIn.tsx frontend/src/pages/SignUp.tsx HOSTING_GUIDE.md push_email_update.bat
 echo ✅ Files staged
 echo.
 

@@ -1,21 +1,25 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 export default function SignIn() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
+    setInfoMessage('');
     
     try {
-      const response = await fetch('http://localhost:5000/api/auth/signin', {
+      const response = await fetch(`${API_BASE_URL}/api/auth/signin`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -37,7 +41,7 @@ export default function SignIn() {
         } else {
           // If backend doesn't send user, fetch it separately
           try {
-            const profileRes = await fetch('http://localhost:5000/api/user/profile', {
+            const profileRes = await fetch(`${API_BASE_URL}/api/user/profile`, {
               headers: {
                 'Authorization': `Bearer ${data.token}`,
                 'Content-Type': 'application/json',
@@ -72,6 +76,41 @@ export default function SignIn() {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!email.trim()) {
+      setError('Enter your email first, then click resend verification.');
+      return;
+    }
+
+    setIsResendingVerification(true);
+    setInfoMessage('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || 'Failed to resend verification email.');
+        return;
+      }
+
+      setInfoMessage(data.message || 'Verification email sent. Please check your inbox.');
+      showToast.success('Verification email sent', 'Check your inbox');
+    } catch (err) {
+      console.error('Resend verification error:', err);
+      setError('Failed to resend verification email. Please try again.');
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
+  const showResendAction = /verify your email/i.test(error);
+
   return (
     <div className="min-h-screen flex flex-col" style={{backgroundColor: 'var(--color-bg-secondary)'}}>
       <div className="flex-grow flex items-center justify-center px-4 py-12">
@@ -86,6 +125,23 @@ export default function SignIn() {
               <div className="form-error mb-4">
                 ⚠️ {error}
               </div>
+            )}
+
+            {infoMessage && (
+              <div className="mb-4 p-3 rounded-lg text-sm" style={{ backgroundColor: '#d1fae5', color: '#065f46' }}>
+                ✓ {infoMessage}
+              </div>
+            )}
+
+            {showResendAction && (
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isResendingVerification}
+                className="btn btn-secondary w-full mb-4"
+              >
+                {isResendingVerification ? 'Resending...' : 'Resend verification email'}
+              </button>
             )}
             
             <form onSubmit={handleSignIn} className="space-y-4">
