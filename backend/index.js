@@ -686,11 +686,40 @@ const createTransactionRecord = async ({ userId, type, method, provider, currenc
   return result.rows[0];
 };
 
-// Helper function to send verification email (mock - replace with actual email service)
-const sendVerificationEmail = (email, token) => {
-  // In production, use a service like SendGrid, Nodemailer, etc.
-  console.log(`Email verification link: http://localhost:5000/api/auth/verify-email?token=${token}`);
-  return Promise.resolve();
+// Helper function to send verification email
+const sendVerificationEmail = async (email, firstName, token) => {
+  const appUrl = process.env.APP_URL || 'http://localhost:5173';
+  const verificationUrl = `${appUrl}/verify-email?token=${token}`;
+
+  const safeFirstName = firstName || 'there';
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h2 style="color: #2563eb;">Verify Your Email Address ✅</h2>
+      <p>Hi ${safeFirstName},</p>
+      <p>Thanks for creating your BillNet Capital account. Please verify your email to activate your account.</p>
+      <a href="${verificationUrl}" 
+         style="background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block; margin: 20px 0;">
+        Verify Email
+      </a>
+      <p style="color: #6b7280; font-size: 14px;">
+        If the button does not work, copy and paste this link into your browser:<br/>
+        ${verificationUrl}
+      </p>
+    </div>
+  `;
+
+  try {
+    await emailService.sendEmail({
+      to: email,
+      subject: 'Verify your email - BillNet Capital',
+      text: `Hi ${safeFirstName}, verify your email using this link: ${verificationUrl}`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Verification email send error:', error);
+    return false;
+  }
 };
 
 // Middleware to verify JWT token
@@ -726,6 +755,40 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
+});
+
+// Protected SMTP test endpoint for production verification
+app.post('/api/admin/email/test', authenticateAdmin, async (req, res) => {
+  try {
+    const { to, subject, message } = req.body || {};
+    const recipient = (to || process.env.EMAIL_USER || process.env.SMTP_USER || '').trim();
+
+    if (!recipient) {
+      return res.status(400).json({
+        error: 'Recipient email is required. Provide "to" in body or set EMAIL_USER/SMTP_USER in environment.'
+      });
+    }
+
+    const emailSubject = subject || 'BillNet SMTP Test Email';
+    const emailMessage = message || 'SMTP is configured correctly and email notifications are now active.';
+
+    const result = await emailService.sendEmail({
+      to: recipient,
+      subject: emailSubject,
+      text: emailMessage,
+      html: `<p>${emailMessage}</p><p><strong>Sent:</strong> ${new Date().toISOString()}</p>`
+    });
+
+    res.json({
+      success: true,
+      message: 'Test email request processed',
+      to: recipient,
+      messageId: result?.messageId || null
+    });
+  } catch (error) {
+    console.error('Admin email test error:', error);
+    res.status(500).json({ error: 'Failed to send test email' });
+  }
 });
 
 // Root endpoint
@@ -783,7 +846,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const user = result.rows[0];
 
     // Send verification email
-    await sendVerificationEmail(email, verificationToken);
+    await sendVerificationEmail(email, firstName, verificationToken);
 
     res.status(201).json({
       message: 'Account created successfully. Please check your email to verify your account.',
@@ -1834,7 +1897,11 @@ app.get('/api/ideas', authenticateToken, async (req, res) => {
         i.user_id, i.post_type, i.equity_percentage,
         u.first_name, 
         u.last_name,
-        u.profile_image
+        u.profile_image,
+        COALESCE((SELECT COUNT(*) FROM comments c WHERE c.idea_id = i.id), 0) AS comment_count,
+        COALESCE((SELECT COUNT(*) FROM favorites f WHERE f.idea_id = i.id), 0) AS save_count,
+        0::int AS share_count,
+        0::int AS report_count
       FROM ideas i
       JOIN users u ON i.user_id = u.id
       WHERE i.status = 'active' OR i.status = 'funded'
@@ -1883,6 +1950,10 @@ app.get('/api/ideas', authenticateToken, async (req, res) => {
       profileImage: row.profile_image,
       postType: row.post_type || 'idea',
       equityPercentage: row.equity_percentage ? parseFloat(row.equity_percentage) : null,
+      commentCount: Number.parseInt(row.comment_count, 10) || 0,
+      saveCount: Number.parseInt(row.save_count, 10) || 0,
+      shareCount: Number.parseInt(row.share_count, 10) || 0,
+      reportCount: Number.parseInt(row.report_count, 10) || 0,
       files: attachmentsMap[row.id] || []
     }));
 
@@ -3675,7 +3746,9 @@ app.get('/api/ideas/search', authenticateToken, async (req, res) => {
                         i.user_id, i.post_type, i.equity_percentage,
                         u.first_name, u.last_name, u.profile_image,
                         COUNT(DISTINCT c.id) as comment_count,
-                        COUNT(DISTINCT f.id) as favorite_count,
+             COUNT(DISTINCT f.id) as save_count,
+             0::int as share_count,
+             0::int as report_count,
                         COUNT(DISTINCT b.id) as bid_count
                  FROM ideas i
                  JOIN users u ON i.user_id = u.id
@@ -3772,7 +3845,9 @@ app.get('/api/ideas/search', authenticateToken, async (req, res) => {
       equityPercentage: row.equity_percentage ? parseFloat(row.equity_percentage) : null,
       files: attachmentsMap[row.id] || [],
       commentCount: parseInt(row.comment_count, 10),
-      favoriteCount: parseInt(row.favorite_count, 10),
+      saveCount: parseInt(row.save_count, 10),
+      shareCount: parseInt(row.share_count, 10),
+      reportCount: parseInt(row.report_count, 10),
       bidCount: parseInt(row.bid_count, 10)
     }));
 

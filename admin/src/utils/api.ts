@@ -8,13 +8,16 @@ export const ADMIN_API = {
   USERS: `${API_BASE_URL}/api/admin/users`,
   IDEAS: `${API_BASE_URL}/api/admin/ideas`,
   VERIFICATIONS: `${API_BASE_URL}/api/admin/verifications`,
+  EMAIL_TEST: `${API_BASE_URL}/api/admin/email/test`,
 };
 
 export function getAdminHeaders() {
   const adminToken = localStorage.getItem('adminToken');
+  const adminSecret = localStorage.getItem('adminSecret');
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${adminToken || ''}`,
+    ...(adminSecret ? { 'x-admin-secret': adminSecret } : {}),
   };
 }
 

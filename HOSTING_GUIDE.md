@@ -98,6 +98,19 @@ git push -u origin main
    DB_PASSWORD=<from database dashboard>
    ```
 
+   **Email Variables** (required for password reset + notifications):
+   ```
+   APP_URL=https://billnet-XXXX.vercel.app
+   EMAIL_HOST=smtp.gmail.com
+   EMAIL_PORT=587
+   EMAIL_SECURE=false
+   EMAIL_USER=your_email@gmail.com
+   EMAIL_PASS=your_app_password
+   EMAIL_FROM=BillNet Capital <noreply@billnet.com>
+   ```
+
+   If using Gmail, generate an **App Password** and use that as `EMAIL_PASS`.
+
 5. Click **"Create Web Service"**
 6. Wait for deployment (~5-10 minutes)
 7. **Copy your backend URL**: `https://billnet-backend-XXXX.onrender.com`
@@ -237,6 +250,21 @@ Now that you have your frontend URLs, update the backend CORS settings:
 1. Visit: `https://billnet-backend-XXXX.onrender.com/api/health`
 2. Should see: `{"status":"ok"}`
 
+### Test Email Notifications (Production)
+1. Send a test request to:
+   - `POST https://billnet-backend-XXXX.onrender.com/api/admin/email/test`
+2. Include header:
+   - `Authorization: Bearer <adminToken>`
+3. Example JSON body:
+   ```json
+   {
+     "to": "your_email@example.com",
+     "subject": "BillNet Production Email Test",
+     "message": "Email notifications are working in production."
+   }
+   ```
+4. Check Render logs for success and confirm email inbox delivery.
+
 ---
 
 ## 🎉 You're Live!
@@ -306,6 +334,12 @@ Render automatically backs up your free PostgreSQL database. For production:
 - Verify DATABASE_URL or individual DB_* variables
 - Check database is running in Render
 - Try using Internal Database URL instead of External
+
+### Emails not sending
+- Verify `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_USER`, `EMAIL_PASS`, and `EMAIL_FROM` in Render
+- Ensure `APP_URL` points to your live frontend URL so email links are valid
+- For Gmail, confirm 2FA is enabled and you are using an App Password
+- Check Render logs for `📧 Using configured SMTP server`
 
 ### Render free tier sleeping
 - Free tier services sleep after 15 minutes of inactivity

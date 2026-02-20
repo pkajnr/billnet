@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { showToast } from '../utils/toast';
+import { ADMIN_API, getAdminHeaders } from '../utils/api';
 
 interface AdminSettings {
   emailNotifications: boolean;
@@ -33,6 +34,8 @@ export default function Settings() {
   const [hasChanges, setHasChanges] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [testEmailTo, setTestEmailTo] = useState('');
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [passwords, setPasswords] = useState({
     current: '',
     new: '',
@@ -75,6 +78,38 @@ export default function Settings() {
       setPasswords({ current: '', new: '', confirm: '' });
     } catch (error) {
       showToast.error('Failed to change password');
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailTo.trim()) {
+      showToast.error('Please enter a recipient email');
+      return;
+    }
+
+    setSendingTestEmail(true);
+    try {
+      const response = await fetch(ADMIN_API.EMAIL_TEST, {
+        method: 'POST',
+        headers: getAdminHeaders(),
+        body: JSON.stringify({
+          to: testEmailTo.trim(),
+          subject: 'BillNet Production Email Test',
+          message: 'Email notifications are working from the admin panel test.'
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        showToast.error(data.error || 'Failed to send test email');
+        return;
+      }
+
+      showToast.success('Test email sent successfully');
+    } catch (error) {
+      showToast.error('Failed to send test email');
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
@@ -194,6 +229,27 @@ export default function Settings() {
               />
               <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
             </label>
+          </div>
+
+          <div className="pt-4 border-t border-gray-200">
+            <p className="font-medium text-gray-800">SMTP Test Email</p>
+            <p className="text-sm text-gray-600 mb-3">Send a live test email to verify production notifications</p>
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                type="email"
+                value={testEmailTo}
+                onChange={(e) => setTestEmailTo(e.target.value)}
+                placeholder="recipient@example.com"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <button
+                onClick={handleSendTestEmail}
+                disabled={sendingTestEmail}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                {sendingTestEmail ? 'Sending...' : 'Send Test Email'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

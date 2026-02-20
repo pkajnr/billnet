@@ -37,6 +37,20 @@ services:
           property: password
       - key: CORS_ORIGIN
         value: https://your-frontend-url.vercel.app
+      - key: APP_URL
+        value: https://your-frontend-url.vercel.app
+      - key: EMAIL_HOST
+        value: smtp.gmail.com
+      - key: EMAIL_PORT
+        value: 587
+      - key: EMAIL_SECURE
+        value: false
+      - key: EMAIL_USER
+        value: your_email@gmail.com
+      - key: EMAIL_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: BillNet Capital <noreply@billnet.com>
 
 databases:
   - name: billnet-db

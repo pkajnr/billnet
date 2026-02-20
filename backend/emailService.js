@@ -5,6 +5,7 @@ class EmailService {
   constructor() {
     // Create test account if no real credentials
     this.transporter = null;
+    this.emailFrom = process.env.EMAIL_FROM || process.env.SMTP_FROM || '"BillNet Capital" <noreply@billnet.com>';
     this.initTransporter();
   }
 
@@ -12,23 +13,29 @@ class EmailService {
     // For development: use ethereal email (fake SMTP)
     // For production: use real SMTP (Gmail, SendGrid, etc.)
     try {
-      if (process.env.EMAIL_HOST && process.env.EMAIL_USER) {
+      const emailHost = process.env.EMAIL_HOST || process.env.SMTP_HOST;
+      const emailPort = Number(process.env.EMAIL_PORT || process.env.SMTP_PORT || 587);
+      const emailUser = process.env.EMAIL_USER || process.env.SMTP_USER;
+      const emailPass = process.env.EMAIL_PASS || process.env.SMTP_PASS || process.env.SMTP_PASSWORD;
+      const emailSecure = String(process.env.EMAIL_SECURE || '').toLowerCase() === 'true' || emailPort === 465;
+
+      if (emailHost && emailUser && emailPass) {
         // Real SMTP configuration
-        this.transporter = nodemailer.createTransporter({
-          host: process.env.EMAIL_HOST,
-          port: process.env.EMAIL_PORT || 587,
-          secure: false,
+        this.transporter = nodemailer.createTransport({
+          host: emailHost,
+          port: emailPort,
+          secure: emailSecure,
           auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
+            user: emailUser,
+            pass: emailPass
           }
         });
-        console.log('📧 Using configured SMTP server');
+        console.log(`📧 Using configured SMTP server (${emailHost}:${emailPort})`);
       } else {
         // Test account for development
         try {
           const testAccount = await nodemailer.createTestAccount();
-          this.transporter = nodemailer.createTransporter({
+          this.transporter = nodemailer.createTransport({
             host: 'smtp.ethereal.email',
             port: 587,
             secure: false,
@@ -69,7 +76,7 @@ class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: process.env.EMAIL_FROM || '"BillNet Capital" <noreply@billnet.com>',
+        from: this.emailFrom,
         to,
         subject,
         text,
@@ -77,7 +84,10 @@ class EmailService {
       });
 
       console.log('📧 Email sent:', info.messageId);
-      console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      if (previewUrl) {
+        console.log('Preview URL:', previewUrl);
+      }
       return info;
     } catch (error) {
       console.error('Email sending error:', error);
