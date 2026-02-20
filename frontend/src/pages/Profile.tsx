@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { SkeletonProfile } from '../components/SkeletonLoader';
+import { API_BASE_URL } from '../libs/api';
 import { showToast } from '../utils/toast';
 
 interface UserProfile {
@@ -116,7 +117,7 @@ export default function Profile() {
   const fetchProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -155,7 +156,7 @@ export default function Profile() {
   const fetchVerificationStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/verification/status', {
+      const response = await fetch(`${API_BASE_URL}/api/user/verification/status`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -180,7 +181,7 @@ export default function Profile() {
   const fetchWallet = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/wallet/balance', {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/balance`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -201,7 +202,7 @@ export default function Profile() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -246,7 +247,7 @@ export default function Profile() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/change-password', {
+      const response = await fetch(`${API_BASE_URL}/api/user/change-password`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -294,7 +295,7 @@ export default function Profile() {
     setIsSubmittingVerification(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/verification/request', {
+      const response = await fetch(`${API_BASE_URL}/api/user/verification/request`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../libs/api';
 
 interface CreatePostProps {
   userRole: string;
@@ -132,7 +133,7 @@ export default function CreatePost({ onPostCreated, openModal = false, hideCard 
         formData.append(`documentType_${item.file.name}`, item.documentType);
       });
 
-      const response = await fetch('http://localhost:5000/api/ideas', {
+      const response = await fetch(`${API_BASE_URL}/api/ideas`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

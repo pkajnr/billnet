@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface AnalyticsData {
   role: 'entrepreneur' | 'investor';
@@ -41,7 +42,7 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/analytics/dashboard', {
+      const response = await fetch(`${API_BASE_URL}/api/analytics/dashboard`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

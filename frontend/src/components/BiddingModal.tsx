@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface BiddingModalProps {
   ideaId: number;
@@ -53,7 +54,7 @@ export default function BiddingModal({
     setIsSubmitting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/bids', {
+      const response = await fetch(`${API_BASE_URL}/api/bids`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

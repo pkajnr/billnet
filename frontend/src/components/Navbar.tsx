@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../libs/api';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -112,7 +113,7 @@ export default function Navbar() {
   const fetchWalletBalance = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/wallet/balance', {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/balance`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -133,7 +134,7 @@ export default function Navbar() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('http://localhost:5000/api/notifications', {
+      const response = await fetch(`${API_BASE_URL}/api/notifications`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -158,7 +159,7 @@ export default function Navbar() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/messages/conversations', {
+      const response = await fetch(`${API_BASE_URL}/api/messages/conversations`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

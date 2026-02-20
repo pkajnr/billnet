@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Idea {
   id: number;
@@ -36,7 +37,7 @@ const AdminIdeas: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/ideas', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/ideas`, {
         headers: {
           'x-admin-secret': adminSecret
         }
@@ -62,7 +63,7 @@ const AdminIdeas: React.FC = () => {
 
     const adminSecret = localStorage.getItem('adminSecret');
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/ideas/${ideaId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/ideas/${ideaId}`, {
         method: 'DELETE',
         headers: {
           'x-admin-secret': adminSecret || ''
@@ -83,7 +84,7 @@ const AdminIdeas: React.FC = () => {
   const handleUpdateStatus = async (ideaId: number, newStatus: string) => {
     const adminSecret = localStorage.getItem('adminSecret');
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/ideas/${ideaId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/ideas/${ideaId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

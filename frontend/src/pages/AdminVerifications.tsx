@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Verification {
   id: number;
@@ -43,7 +44,7 @@ const AdminVerifications: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/verifications', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/verifications`, {
         headers: {
           'x-admin-secret': adminSecret
         }
@@ -66,7 +67,7 @@ const AdminVerifications: React.FC = () => {
     const adminSecret = localStorage.getItem('adminSecret');
     
     try {
-      const response = await fetch('http://localhost:5000/api/user/verification/admin/decision', {
+      const response = await fetch(`${API_BASE_URL}/api/user/verification/admin/decision`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

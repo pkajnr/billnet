@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import BidManagementModal from '../components/BidManagementModal';
+import { API_BASE_URL } from '../libs/api';
 import { formatCurrencyShort } from '../utils/formatCurrency';
 
 interface Idea {
@@ -30,7 +31,7 @@ export default function MyIdeas() {
   const fetchMyIdeas = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/ideas/my-ideas', {
+      const response = await fetch(`${API_BASE_URL}/api/ideas/my-ideas`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -93,7 +94,7 @@ export default function MyIdeas() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/ideas/${ideaId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

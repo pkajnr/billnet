@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import BiddingModal from '../components/BiddingModal';
 import CreatePost from '../components/CreatePost';
+import { API_BASE_URL } from '../libs/api';
 import { showToast } from '../utils/toast';
 import { formatCurrencyShort } from '../utils/formatCurrency';
 
@@ -138,7 +139,7 @@ export default function ExploreIdeas() {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -173,7 +174,7 @@ export default function ExploreIdeas() {
       const offset = pageToLoad * PAGE_SIZE;
       
       // Build query string for search/filter if active
-      let url = `http://localhost:5000/api/ideas?limit=${PAGE_SIZE}&offset=${offset}`;
+      let url = `${API_BASE_URL}/api/ideas?limit=${PAGE_SIZE}&offset=${offset}`;
       if (isSearching) {
         const params = new URLSearchParams();
         params.append('limit', PAGE_SIZE.toString());
@@ -184,7 +185,7 @@ export default function ExploreIdeas() {
         if (minFunding) params.append('minFunding', minFunding);
         if (maxFunding) params.append('maxFunding', maxFunding);
         if (sortBy) params.append('sortBy', sortBy);
-        url = `http://localhost:5000/api/ideas/search?${params.toString()}`;
+        url = `${API_BASE_URL}/api/ideas/search?${params.toString()}`;
       }
       
       const response = await fetch(url, {
@@ -240,7 +241,7 @@ export default function ExploreIdeas() {
   const fetchWalletBalance = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/wallet/balance', {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/balance`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -259,7 +260,7 @@ export default function ExploreIdeas() {
   const fetchFavorites = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/favorites', {
+      const response = await fetch(`${API_BASE_URL}/api/favorites`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -278,7 +279,7 @@ export default function ExploreIdeas() {
   const fetchFollows = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/follows', {
+      const response = await fetch(`${API_BASE_URL}/api/follows`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -298,7 +299,7 @@ export default function ExploreIdeas() {
     try {
       setIsLoadingSuggested(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users/suggested?limit=3', {
+      const response = await fetch(`${API_BASE_URL}/api/users/suggested?limit=3`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -319,7 +320,7 @@ export default function ExploreIdeas() {
   const fetchComments = async (ideaId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/comments/${ideaId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/comments/${ideaId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -338,7 +339,7 @@ export default function ExploreIdeas() {
   const toggleFavorite = async (ideaId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/favorites/${ideaId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/favorites/${ideaId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -411,7 +412,7 @@ export default function ExploreIdeas() {
   const toggleFollow = async (userId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/follows/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/follows/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -441,7 +442,7 @@ export default function ExploreIdeas() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/comments', {
+      const response = await fetch(`${API_BASE_URL}/api/comments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -978,7 +979,7 @@ export default function ExploreIdeas() {
                       {idea.files.map((file, idx) => (
                         <a
                           key={idx}
-                          href={`http://localhost:5000${file.url}`}
+                          href={`${API_BASE_URL}${file.url}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-gray-100 rounded-lg transition group"

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
+import { API_BASE_URL } from '../libs/api';
 
 interface UserProfile {
   id: string;
@@ -23,7 +24,7 @@ export default function Dashboard() {
     const fetchUserProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:5000/api/user/profile', {
+        const response = await fetch(`${API_BASE_URL}/api/user/profile`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

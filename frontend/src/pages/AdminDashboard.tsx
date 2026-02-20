@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Stats {
   totalUsers: number;
@@ -27,7 +28,7 @@ const AdminDashboard: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/stats', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/stats`, {
         headers: {
           'x-admin-secret': adminSecret
         }

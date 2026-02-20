@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import BiddingModal from '../components/BiddingModal';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Owner {
   firstName: string;
@@ -82,7 +83,7 @@ export default function IdeaDetail() {
   const fetchIdeaDetails = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/ideas/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/ideas/${id}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -362,7 +363,7 @@ export default function IdeaDetail() {
                   {idea.attachments.map((attachment) => (
                     <a
                       key={attachment.id}
-                      href={`http://localhost:5000${attachment.fileUrl}`}
+                      href={`${API_BASE_URL}${attachment.fileUrl}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition border border-slate-200"

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface FileWithType {
   file: File;
@@ -56,7 +57,7 @@ export default function EditPost() {
   const fetchPostData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/ideas/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/ideas/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -200,7 +201,7 @@ export default function EditPost() {
         formData.append(`documentType_${item.file.name}`, item.documentType);
       });
 
-      const response = await fetch(`http://localhost:5000/api/ideas/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/ideas/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
+import { API_BASE_URL } from '../libs/api';
 import { showToast } from '../utils/toast';
 
 interface Bid {
@@ -33,7 +34,7 @@ export default function MyBids() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/bids/my-bids', {
+      const response = await fetch(`${API_BASE_URL}/api/bids/my-bids`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',

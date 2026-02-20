@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
 import FileUpload from '../components/FileUpload';
+import { API_BASE_URL } from '../libs/api';
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export default function CompleteProfile() {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/user/complete-profile', {
+      const response = await fetch(`${API_BASE_URL}/api/user/complete-profile`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

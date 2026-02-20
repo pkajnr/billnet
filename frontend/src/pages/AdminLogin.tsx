@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 const AdminLogin: React.FC = () => {
   const [adminSecret, setAdminSecret] = useState('');
@@ -21,7 +22,7 @@ const AdminLogin: React.FC = () => {
     localStorage.setItem('adminSecret', adminSecret);
     
     // Verify the secret by making a test request
-    fetch('http://localhost:5000/api/admin/verify', {
+    fetch(`${API_BASE_URL}/api/admin/verify`, {
       headers: {
         'x-admin-secret': adminSecret
       }

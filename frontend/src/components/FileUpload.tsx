@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface FileUploadProps {
   type: 'profile' | 'idea';
@@ -50,8 +51,8 @@ export default function FileUpload({
       }
 
       const url = type === 'profile' 
-        ? 'http://localhost:5000/api/upload/profile'
-        : `http://localhost:5000/api/upload/idea/${ideaId}`;
+        ? `${API_BASE_URL}/api/upload/profile`
+        : `${API_BASE_URL}/api/upload/idea/${ideaId}`;
 
       const response = await fetch(url, {
         method: 'POST',

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface PaymentMethod {
   id: string;
@@ -34,7 +35,7 @@ export default function AddFunds() {
   const fetchWalletBalance = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/wallet/balance', {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/balance`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -55,7 +56,7 @@ export default function AddFunds() {
   const fetchPaymentMethods = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/wallet/payment-methods', {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/payment-methods`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -100,7 +101,7 @@ export default function AddFunds() {
     setIsAddingFunds(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/wallet/initiate-payment', {
+      const response = await fetch(`${API_BASE_URL}/api/wallet/initiate-payment`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

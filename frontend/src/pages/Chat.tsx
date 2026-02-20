@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Conversation {
   other_user_id: number;
@@ -74,7 +75,7 @@ export default function Chat() {
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages/conversations', {
+      const response = await fetch(`${API_BASE_URL}/api/messages/conversations`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -95,7 +96,7 @@ export default function Chat() {
   const fetchMessages = async (userId: number, silent = false) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/messages/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/messages/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -122,7 +123,7 @@ export default function Chat() {
     setIsSending(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch(`${API_BASE_URL}/api/messages`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Bid {
   id: number;
@@ -37,7 +38,7 @@ export default function BidManagementModal({ ideaId, isOpen, onClose }: BidManag
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/ideas/${ideaId}/bids/list`, {
+      const response = await fetch(`${API_BASE_URL}/api/ideas/${ideaId}/bids/list`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ export default function BidManagementModal({ ideaId, isOpen, onClose }: BidManag
     setProcessingBidId(bidId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/bids/${bidId}/accept`, {
+      const response = await fetch(`${API_BASE_URL}/api/bids/${bidId}/accept`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -89,7 +90,7 @@ export default function BidManagementModal({ ideaId, isOpen, onClose }: BidManag
     setProcessingBidId(bidId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/bids/${bidId}/reject`, {
+      const response = await fetch(`${API_BASE_URL}/api/bids/${bidId}/reject`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,7 +137,7 @@ export default function BidManagementModal({ ideaId, isOpen, onClose }: BidManag
     setProcessingBidId(counterBidId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/bids/${counterBidId}/counter`, {
+      const response = await fetch(`${API_BASE_URL}/api/bids/${counterBidId}/counter`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../libs/api';
 import { showToast } from '../utils/toast';
 
 interface Asset {
@@ -57,7 +58,7 @@ export default function MyAssets() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/marketplace/my-assets', {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/my-assets`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -81,7 +82,7 @@ export default function MyAssets() {
     try {
       setIsLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/marketplace/my-listings', {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/my-listings`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -111,7 +112,7 @@ export default function MyAssets() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/marketplace/listings', {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/listings`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -154,7 +155,7 @@ export default function MyAssets() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/marketplace/listings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/listings/${id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -180,7 +181,7 @@ export default function MyAssets() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/marketplace/listings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/listings/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

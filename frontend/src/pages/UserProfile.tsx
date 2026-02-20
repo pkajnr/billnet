@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
 import { Notification } from '../components/NotificationToast';
+import { API_BASE_URL } from '../libs/api';
 import { formatCurrencyShort } from '../utils/formatCurrency';
 
 interface UserData {
@@ -65,7 +66,7 @@ export default function UserProfile() {
   const fetchUserProfile = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -92,7 +93,7 @@ export default function UserProfile() {
   const fetchUserIdeas = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/ideas`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/ideas`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -113,7 +114,7 @@ export default function UserProfile() {
   const fetchUserInvestments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/investments`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/${userId}/investments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ export default function UserProfile() {
   const checkFollowing = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/follows', {
+      const response = await fetch(`${API_BASE_URL}/api/follows`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -151,7 +152,7 @@ export default function UserProfile() {
   const handleFollow = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/follows/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/follows/${userId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface Listing {
   id: number;
@@ -49,7 +50,7 @@ export default function Marketplace() {
       params.append('sort', filters.sort);
       params.append('order', filters.order);
 
-      const response = await fetch(`http://localhost:5000/api/marketplace/listings?${params}`);
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/listings?${params}`);
       
       if (response.ok) {
         const data = await response.json();
@@ -70,7 +71,7 @@ export default function Marketplace() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/marketplace/buy/${listingId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/marketplace/buy/${listingId}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

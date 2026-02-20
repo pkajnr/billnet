@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
+import { API_BASE_URL } from '../libs/api';
 
 interface ChatMessage {
   id: number;
@@ -121,7 +122,7 @@ export default function Messages() {
   const fetchConversations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages/conversations', {
+      const response = await fetch(`${API_BASE_URL}/api/messages/conversations`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -161,7 +162,7 @@ export default function Messages() {
     try {
       setIsSearchingUsers(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/users/search?q=${encodeURIComponent(query)}&limit=30`, {
+      const response = await fetch(`${API_BASE_URL}/api/users/search?q=${encodeURIComponent(query)}&limit=30`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -182,7 +183,7 @@ export default function Messages() {
   const fetchChatMessages = async (userId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/messages/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/messages/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -237,7 +238,7 @@ export default function Messages() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch(`${API_BASE_URL}/api/messages`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

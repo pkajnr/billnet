@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { showToast } from '../utils/toast';
+import { API_BASE_URL } from '../libs/api';
 
 interface User {
   id: number;
@@ -31,7 +32,7 @@ const AdminUsers: React.FC = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/admin/users', {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users`, {
         headers: {
           'x-admin-secret': adminSecret
         }
@@ -57,7 +58,7 @@ const AdminUsers: React.FC = () => {
 
     const adminSecret = localStorage.getItem('adminSecret');
     try {
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
         headers: {
           'x-admin-secret': adminSecret || ''

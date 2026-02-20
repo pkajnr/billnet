@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { SkeletonDashboard } from '../components/SkeletonLoader';
+import { API_BASE_URL } from '../libs/api';
 import { showToast } from '../utils/toast';
 
 interface Investment {
@@ -65,7 +66,7 @@ export default function MyInvestments() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/investments/my-investments', {
+      const response = await fetch(`${API_BASE_URL}/api/investments/my-investments`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
